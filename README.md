@@ -1,6 +1,8 @@
 # Precision2
 Welcome to the repository for Precision2. This repository is based on much of the source code developed in Precision1. However, with a reorganization of packages, a switch to ROS2, and much more, this repository is being built from the ground up. 
 
+## ROS2 Version
+For Precision2, we will be using [ROS2 Humble Hawksbill](https://docs.ros.org/en/humble/index.html).
 
 ## Creating Packages
 To create a ROS2 package, use the following command from the reposiroty `src/` directory:

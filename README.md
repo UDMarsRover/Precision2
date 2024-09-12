@@ -41,3 +41,7 @@ source install/setup.bash
 ```
 
 ## Running Nodes
+
+## UDMRT Network
+ssid - 'udmrt-dev-1'
+password - 'precision1'

@@ -54,7 +54,7 @@ for event in gamepad.read_loop():
         if evevent.event.code == ecodes.BTN_A:
             if evevent.event.value == 1:
                 print("A pressed")
-            a_toggle_state = not a_toggle_state
+                a_toggle_state = not a_toggle_state
     if a_toggle_state:
         print("Right Stick: Y:\t", format(get_stick_value(right_stick_y_raw), '.2f'), "\tX:\t", format(get_stick_value(right_stick_x_raw), '.2f'))
     else:

@@ -25,6 +25,9 @@ def get_stick_value(raw_value):
     else:
         return 0
 
+right_stick_x_raw = 0
+right_stick_y_raw = 0
+
 #evdev takes care of polling the controller in a loop
 for event in gamepad.read_loop():
     # EV_KEY: Button events, EV_ABS: Joystick events
@@ -35,9 +38,10 @@ for event in gamepad.read_loop():
         #     print("Left Stick X:", absevent.event.value)
         # elif absevent.event.code == ecodes.ABS_Y:
         #     print("Left Stick Y:", absevent.event.value)
-        # elif absevent.event.code == ecodes.ABS_RX:
-        #     print("Right Stick X:", absevent.event.value)
+        if absevent.event.code == 5:
+            right_stick_y_raw = absevent.event.value
         if absevent.event.code == 2:
+            right_stick_x_raw = absevent.event.value
             
-            print("Right Stick Y:", get_stick_value(absevent.event.value))
+    print("Right Stick: Y:\t", format(get_stick_value(right_stick_y_raw), '.2f'), "\tX:\t", format(get_stick_value(right_stick_x_raw), '.2f'))
 

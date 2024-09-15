@@ -1,0 +1,11 @@
+[Unit]
+Description=Auto Pair Bluetooth Device
+After=bluetooth.target
+
+[Service]
+ExecStart=/etc/udmrt/startup_scripts/bluetooth_controller_setup.sh
+TimeoutStartSec=10
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

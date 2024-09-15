@@ -27,6 +27,9 @@ def get_stick_value(raw_value):
 
 right_stick_x_raw = 0
 right_stick_y_raw = 0
+left_stick_x_raw = 0
+left_stick_y_raw = 0
+a_toggle_state = False
 
 #evdev takes care of polling the controller in a loop
 for event in gamepad.read_loop():
@@ -42,10 +45,17 @@ for event in gamepad.read_loop():
             right_stick_y_raw = absevent.event.value
         if absevent.event.code == 2:
             right_stick_x_raw = absevent.event.value
+        if absevent.event.code == 1:
+            left_stick_y_raw = absevent.event.value
+        if absevent.event.code == 0:
+            left_stick_x_raw = absevent.event.value
     if event.type == ecodes.EV_KEY:
-        keyevent = categorize(event)
-        if keyevent.keystate == keyevent.key_down:
-            print(keyevent.event.code)
-            
-    # print("Right Stick: Y:\t", format(get_stick_value(right_stick_y_raw), '.2f'), "\tX:\t", format(get_stick_value(right_stick_x_raw), '.2f'))
-
+        evevent = categorize(event)
+        if evevent.event.code == ecodes.BTN_A:
+            if evevent.event.value == 1:
+                print("A pressed")
+            a_toggle_state = not a_toggle_state
+    if a_toggle_state:
+        print("Right Stick: Y:\t", format(get_stick_value(right_stick_y_raw), '.2f'), "\tX:\t", format(get_stick_value(right_stick_x_raw), '.2f'))
+    else:
+        print("Left Stick: Y:\t", format(get_stick_value(left_stick_y_raw), '.2f'), "\tX:\t", format(get_stick_value(left_stick_x_raw), '.2f'))

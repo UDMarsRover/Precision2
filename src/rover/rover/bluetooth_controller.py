@@ -45,7 +45,7 @@ for event in gamepad.read_loop():
     if event.type == ecodes.EV_KEY:
         keyevent = categorize(event)
         if keyevent.keystate == keyevent.key_down:
-            print(keyevent.keycode)
+            print(keyevent.event.code)
             
     # print("Right Stick: Y:\t", format(get_stick_value(right_stick_y_raw), '.2f'), "\tX:\t", format(get_stick_value(right_stick_x_raw), '.2f'))
 

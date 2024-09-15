@@ -1,6 +1,6 @@
 #import evdev
 from evdev import InputDevice, categorize, ecodes
-
+import evdev
 # Find and create device
 devices = [evdev.InputDevice(path) for path in evdev.list_devices()]
 for device in devices:

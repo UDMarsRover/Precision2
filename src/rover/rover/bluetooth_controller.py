@@ -17,5 +17,13 @@ print(gamepad)
 #evdev takes care of polling the controller in a loop
 for event in gamepad.read_loop():
     # EV_KEY: Button events, EV_ABS: Joystick events
-    if event.type == evdev.ecodes.EV_ABS:
-        print(categorize(event))
+    if event.type == ecodes.EV_ABS:
+        absevent = categorize(event)
+        if absevent.event.code == ecodes.ABS_X:
+            print("Left Stick X:", absevent.event.value)
+        elif absevent.event.code == ecodes.ABS_Y:
+            print("Left Stick Y:", absevent.event.value)
+        elif absevent.event.code == ecodes.ABS_RX:
+            print("Right Stick X:", absevent.event.value)
+        elif absevent.event.code == ecodes.ABS_RY:
+            print("Right Stick Y:", absevent.event.value)

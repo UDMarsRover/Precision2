@@ -2,6 +2,7 @@
 
 # Function to install ROS 2 Humble
 install_ros2_humble() {
+    echo "Ubuntu 22.04 detected"
     echo "Installing ROS 2 Humble..."
     sudo apt update
     sudo apt install -y curl gnupg2 lsb-release
@@ -15,6 +16,7 @@ install_ros2_humble() {
 
 # Function to install ROS 2 Jazzy
 install_ros2_jazzy() {
+    echo "Ubuntu 24.04 detected."
     echo "Installing ROS 2 Jazzy..."
     sudo apt update
     sudo apt install -y curl gnupg2 lsb-release

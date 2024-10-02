@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "controller_teleop=base_station.controller_teleop:main"
         ],
     },
 )

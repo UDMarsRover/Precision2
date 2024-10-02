@@ -10,7 +10,9 @@ install_ros2_humble() {
     sudo sh -c 'echo "deb http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2-latest.list'
     sudo apt update
     sudo apt install -y ros-humble-desktop
-    echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+    if ! grep -Fxq "source /opt/ros/humble/setup.bash" ~/.bashrc; then
+        echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+    fi
     source ~/.bashrc
 }
 
@@ -24,7 +26,9 @@ install_ros2_jazzy() {
     sudo sh -c 'echo "deb http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2-latest.list'
     sudo apt update
     sudo apt install -y ros-jazzy-desktop
-    echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+    if ! grep -Fxq "source /opt/ros/jazzy/setup.bash" ~/.bashrc; then
+        echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+    fi
     source ~/.bashrc
 }
 

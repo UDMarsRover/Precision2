@@ -79,7 +79,18 @@ class DynamixelMX:
         else:
             print("Dynamixel has been successfully connected")
 
+    def set_torque_disable(self):
+        # Disable Dynamixel Torque
+        dxl_comm_result, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.ID, ADDR_TORQUE_ENABLE, TORQUE_DISABLE)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % self.packetHandler.getRxPacketError(dxl_error))
+        else:
+            print("Dynamixel has been successfully connected")
+
     def set_velocity_mode(self):
+        self.set_torque_disable()
         dxl_comm_result, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.ID, OPERATING_MODE, VELOCITY_MODE)
         if dxl_comm_result != COMM_SUCCESS:
             print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
@@ -87,6 +98,7 @@ class DynamixelMX:
             print("%s" % self.packetHandler.getRxPacketError(dxl_error))
         else:
             print("Dynamixel has been successfully connected")
+        self.set_torque_enable()
 
 
     # def getch(self):

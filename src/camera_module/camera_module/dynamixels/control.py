@@ -100,6 +100,11 @@ class DynamixelMX:
             print("Velocity mode has been enabled")
         self.set_torque_enable()
 
+    def get_max_position(self):
+        return DXL_MAXIMUM_POSITION_VALUE
+
+    def get_min_position(self):
+        return DXL_MINIMUM_POSITION_VALUE
 
     # def getch(self):
     #     try:

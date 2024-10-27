@@ -6,6 +6,8 @@ ADDR_TORQUE_ENABLE          = 64
 ADDR_GOAL_VELOCITY          = 104
 ADDR_GOAL_POSITION          = 116
 ADDR_PRESENT_POSITION       = 132
+OPERATING_MODE              = 11
+VELOCITY_MODE               = 1
 DXL_MINIMUM_POSITION_VALUE  = 0         # Refer to the Minimum Position Limit of product eManual
 DXL_MAXIMUM_POSITION_VALUE  = 4095      # Refer to the Maximum Position Limit of product eManual
 BAUDRATE                    = 57600
@@ -28,6 +30,7 @@ class DynamixelMX:
         self.open()
         self.set_baudrate()
         self.set_torque_enable()
+        self.set_velocity_mode()
         self.index = 0
 
     def open(self):
@@ -74,6 +77,16 @@ class DynamixelMX:
             print("%s" % self.packetHandler.getRxPacketError(dxl_error))
         else:
             print("Dynamixel has been successfully connected")
+
+    def set_velocity_mode(self):
+        dxl_comm_result, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.ID, OPERATING_MODE, VELOCITY_MODE)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % self.packetHandler.getRxPacketError(dxl_error))
+        else:
+            print("Dynamixel has been successfully connected")
+
 
     # def getch(self):
     #     try:

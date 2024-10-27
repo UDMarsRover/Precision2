@@ -58,16 +58,16 @@ class DynamixelMX:
     def write_goal_position(self, goal_position):
         dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.ID, ADDR_GOAL_POSITION, goal_position)
         if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+            print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
         elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
+            print("%s" % self.packetHandler.getRxPacketError(dxl_error))
 
     def write_goal_velocity(self, goal_velocity):
         dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.ID, ADDR_GOAL_VELOCITY, goal_velocity)
         if dxl_comm_result != COMM_SUCCESS:
-            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+            print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
         elif dxl_error != 0:
-            print("%s" % packetHandler.getRxPacketError(dxl_error))
+            print("%s" % self.packetHandler.getRxPacketError(dxl_error))
 
     def set_torque_enable(self):
         # Enable Dynamixel Torque

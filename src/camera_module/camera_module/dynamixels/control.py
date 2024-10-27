@@ -8,6 +8,7 @@ ADDR_GOAL_POSITION          = 116
 ADDR_PRESENT_POSITION       = 132
 OPERATING_MODE              = 11
 VELOCITY_MODE               = 1
+POSITION_MODE               = 3
 DXL_MINIMUM_POSITION_VALUE  = 0         # Refer to the Minimum Position Limit of product eManual
 DXL_MAXIMUM_POSITION_VALUE  = 4095      # Refer to the Maximum Position Limit of product eManual
 BAUDRATE                    = 57600
@@ -31,6 +32,8 @@ class DynamixelMX:
         self.set_baudrate()
         
         # self.set_velocity_mode()
+        self.set_torquee_disable()
+        self.set_position_mode()
         self.set_torque_enable() # Will lock eeprom
         self.index = 0
 
@@ -98,6 +101,17 @@ class DynamixelMX:
             print("%s" % self.packetHandler.getRxPacketError(dxl_error))
         else:
             print("Velocity mode has been enabled")
+        self.set_torque_enable()
+
+    def set_position_mode(self):
+        self.set_torque_disable()
+        dxl_comm_result, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, self.ID, OPERATING_MODE, POSITION_MODE)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % self.packetHandler.getRxPacketError(dxl_error))
+        else:
+            print("Position mode has been enabled")
         self.set_torque_enable()
 
     def get_max_position(self):

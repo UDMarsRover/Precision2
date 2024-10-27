@@ -97,7 +97,7 @@ class DynamixelMX:
         elif dxl_error != 0:
             print("%s" % self.packetHandler.getRxPacketError(dxl_error))
         else:
-            print("Dynamixel has been successfully connected")
+            print("Velocity mode has been enabled")
         self.set_torque_enable()
 
 

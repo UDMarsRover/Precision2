@@ -3,6 +3,7 @@ from dynamixel_sdk import * # Uses Dynamixel SDK library
 
 MY_DXL = 'X_SERIES'
 ADDR_TORQUE_ENABLE          = 64
+ADDR_GOAL_VELOCITY          = 104
 ADDR_GOAL_POSITION          = 116
 ADDR_PRESENT_POSITION       = 132
 DXL_MINIMUM_POSITION_VALUE  = 0         # Refer to the Minimum Position Limit of product eManual
@@ -28,7 +29,7 @@ class DynamixelMX:
         self.set_baudrate()
         self.set_torque_enable()
         self.index = 0
-        
+
     def open(self):
         if self.portHandler.openPort():
             print("Succeeded to open the port")
@@ -52,6 +53,13 @@ class DynamixelMX:
     # Position is in range 0-4095
     def write_goal_position(self, goal_position):
         dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.ID, ADDR_GOAL_POSITION, goal_position)
+        if dxl_comm_result != COMM_SUCCESS:
+            print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+        elif dxl_error != 0:
+            print("%s" % packetHandler.getRxPacketError(dxl_error))
+
+    def write_goal_velocity(self, goal_velocity):
+        dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, self.ID, ADDR_GOAL_VELOCITY, goal_velocity)
         if dxl_comm_result != COMM_SUCCESS:
             print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
         elif dxl_error != 0:

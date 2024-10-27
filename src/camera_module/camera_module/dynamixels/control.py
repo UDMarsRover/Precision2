@@ -29,8 +29,9 @@ class DynamixelMX:
         self.packetHandler = PacketHandler(PROTOCOL_VERSION)
         self.open()
         self.set_baudrate()
-        self.set_torque_enable()
+        
         self.set_velocity_mode()
+        self.set_torque_enable()
         self.index = 0
 
     def open(self):

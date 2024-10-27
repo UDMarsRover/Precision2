@@ -77,7 +77,7 @@ class DynamixelMX:
         elif dxl_error != 0:
             print("%s" % self.packetHandler.getRxPacketError(dxl_error))
         else:
-            print("Dynamixel has been successfully connected")
+            print("Torque has been enabled")
 
     def set_torque_disable(self):
         # Disable Dynamixel Torque
@@ -85,9 +85,9 @@ class DynamixelMX:
         if dxl_comm_result != COMM_SUCCESS:
             print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
         elif dxl_error != 0:
-            print("%s" % self.packetHandler.getRxPacketError(dxl_error))
+            print("%s" % self.packetHandldr.getRxPacketError(dxl_error))
         else:
-            print("Dynamixel has been successfully connected")
+            print("Torque has been disabled -- EEPROM unlocked")
 
     def set_velocity_mode(self):
         self.set_torque_disable()

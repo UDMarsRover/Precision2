@@ -19,8 +19,8 @@ class DynamixelMX:
         self.port = port
         self.ID = ID
         self.baud = baud
-        self.fd = sys.stdin.fileno()
-        self.old_settings = termios.tcgetattr(self.fd)
+        # self.fd = sys.stdin.fileno()
+        # self.old_settings = termios.tcgetattr(self.fd)
         self.baudrate = baud
         self.portHandler = PortHandler(port)
         self.packetHandler = PacketHandler(PROTOCOL_VERSION)
@@ -28,11 +28,7 @@ class DynamixelMX:
         self.set_baudrate()
         self.set_torque_enable()
         self.index = 0
-
-        self.open()
-        self.set_baudrate()
-        self.set_torque_enable()
-
+        
     def open(self):
         if self.portHandler.openPort():
             print("Succeeded to open the port")

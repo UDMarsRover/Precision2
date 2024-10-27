@@ -1,4 +1,4 @@
-import sys, tty, termios
+# import sys, tty, termios
 from dynamixel_sdk import * # Uses Dynamixel SDK library
 
 MY_DXL = 'X_SERIES'
@@ -29,23 +29,21 @@ class DynamixelMX:
         self.set_torque_enable()
         self.index = 0
 
+        self.open()
+        self.set_baudrate()
+        self.set_torque_enable()
+
     def open(self):
         if self.portHandler.openPort():
             print("Succeeded to open the port")
         else:
             print("Failed to open the port")
-            print("Press any key to terminate...")
-            self.getch()
-            quit()
 
     def set_baudrate(self):
         if self.portHandler.setBaudRate(self.baudrate):
             print("Succeeded to change the baudrate")
         else:
             print("Failed to change the baudrate")
-            print("Press any key to terminate...")
-            self.getch()
-            quit()
 
     def read_present_position(self):
         dxl_present_position, dxl_comm_result, dxl_error = self.packetHandler.read4ByteTxRx(self.portHandler, self.id, ADDR_PRESENT_POSITION)
@@ -73,15 +71,13 @@ class DynamixelMX:
         else:
             print("Dynamixel has been successfully connected")
 
-    def getch(self):
-        try:
-            tty.setraw(sys.stdin.fileno())
-            ch = sys.stdin.read(1)
-        finally:
-            termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old_settings)
-        return ch
-
-def imports():
+    # def getch(self):
+    #     try:
+    #         tty.setraw(sys.stdin.fileno())
+    #         ch = sys.stdin.read(1)
+    #     finally:
+    #         termios.tcsetattr(self.fd, termios.TCSADRAIN, self.old_settings)
+    #     return ch
     
     
     

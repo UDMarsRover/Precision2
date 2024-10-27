@@ -31,7 +31,7 @@ class DynamixelMX:
         self.set_baudrate()
         
         self.set_velocity_mode()
-        self.set_torque_enable()
+        self.set_torque_enable() # Will lock eeprom
         self.index = 0
 
     def open(self):

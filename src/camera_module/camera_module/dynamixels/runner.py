@@ -10,5 +10,5 @@ while True:
     time.sleep(2)
     motor.write_goal_velocity(40)
     time.sleep(2)
-    motor.write_goal_velocity(0)
+    motor.write_goal_velocity(-100)
     time.sleep(2)

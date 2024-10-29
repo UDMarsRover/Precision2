@@ -1,7 +1,6 @@
 /**
  * @file udmrt_temperature.h
- * @author Greg Molskow
- * @brief Thi class is created to interface with the temperature sensor onboard the arduino nano BLE sense.
+ * @brief This class is created to interface with the temperature sensor onboard the Arduino Nano BLE Sense.
  * @version 0.1
  * @date 2024-07-17
  * 
@@ -14,15 +13,15 @@
 
 #include <Arduino.h>
 #include "../udmrt_sensor.cpp"
-#include <sensor_msgs/Temperature.h>
+#include <sensor_msgs/msg/temperature.hpp>
 #include <Arduino_HTS221.h> 
 
-class UDMRT_Temperature : public UDMRT_Sensor<sensor_msgs::Temperature>{
+class UDMRT_Temperature : public UDMRT_Sensor<sensor_msgs::msg::Temperature>{
 
     public:
-        UDMRT_Temperature(char* name, ros::NodeHandle* node);
+        UDMRT_Temperature(char* name, NodeHandle* node);
 
-        void init(ros::Publisher* dataPublisher, ros::Publisher* diagnosticPublisher);
+        void init(Publisher* dataPublisher, Publisher* diagnosticPublisher);
 
         /**
          * @brief The function that pulls data from the sensor and updates the messages. Called by spin()

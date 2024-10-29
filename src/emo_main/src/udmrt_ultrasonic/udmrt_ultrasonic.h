@@ -1,6 +1,5 @@
 /**
  * @file udmrt_ultrasonic.h
- * @author Greg Molskow
  * @brief This class is used with the ultrasonic sensors for object detection on the UMDRT mars rover. This class is intended to represent a single sensor and is intended to be used on Arduino.
  * @version 0.1
  * @date 2024-07-16
@@ -13,16 +12,14 @@
 #define UDMRT_ULTRASONIC_H
 
 #include "../udmrt_sensor.cpp"
-#include <sensor_msgs/Range.h>
+#include <sensor_msgs/msg/range.hpp>
 #include <NewPing.h>
 
-
-
-class UDMRT_Ultrasonic: public UDMRT_Sensor<sensor_msgs::Range>{
+class UDMRT_Ultrasonic: public UDMRT_Sensor<sensor_msgs::msg::Range> {
 
     public:
         UDMRT_Ultrasonic(char* name, 
-                         ros::NodeHandle* node,
+                         NodeHandle* node,
                          int trigger_pin,
                          int echo_pin,
                          int max_distance = 100,
@@ -41,7 +38,7 @@ class UDMRT_Ultrasonic: public UDMRT_Sensor<sensor_msgs::Range>{
          */
         void spin();
 
-        void init(NewPing* sensor, ros::Publisher* dataPublisher, ros::Publisher* diagnosticPublisher);
+        void init(NewPing* sensor, Publisher* dataPublisher, Publisher* diagnosticPublisher);
     
     private:
 
@@ -50,7 +47,6 @@ class UDMRT_Ultrasonic: public UDMRT_Sensor<sensor_msgs::Range>{
         float currentDistance;
 
         NewPing* ultrasonicSensor;
-
 
 };
 

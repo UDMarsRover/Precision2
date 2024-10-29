@@ -1,7 +1,6 @@
 /**
  * @file udmrt_gps.h
- * @author Greg Molskow
- * @brief This class is created for UDMRT to be used with their GPS senor. This class is a child class of the UDMRT_Senor class which handles the ROS setup and interface. Additionally, this class handles the reading of serial messages from the GPS sensor which is hooked up via the Serial1 port. This clas is designed to work with the Arduino Nano 33 BLE Sense board but can be used with any arduino that has the Serial1 hardware serial port (RX/TX).
+ * @brief This class is created for UDMRT to be used with their GPS sensor. This class is a child class of the UDMRT_Sensor class which handles the ROS setup and interface. Additionally, this class handles the reading of serial messages from the GPS sensor which is hooked up via the Serial1 port. This class is designed to work with the Arduino Nano 33 BLE Sense board but can be used with any Arduino that has the Serial1 hardware serial port (RX/TX).
  * @version 2
  * @date 2024-07-12
  * 
@@ -14,31 +13,30 @@
 #include "../udmrt_sensor.cpp"
 #include <TinyGPSPlus.h>
 #include <float.h>
-#include <sensor_msgs/NavSatFix.h>
+#include <sensor_msgs/msg/nav_sat_fix.hpp>
 
-
-class UDMRT_GPS: public UDMRT_Sensor<sensor_msgs::NavSatFix>{
+class UDMRT_GPS: public UDMRT_Sensor<sensor_msgs::msg::NavSatFix>{
   /** IMPORTANT: This code is written specifically for a GPS unit that receives signal at a frequency of 1Hz. 
     If a GPS with a higher refresh rate is used in the future, this code will need to be reworked. -Kaiden
   */
 
   public:
     /**
-     * @brief Construct a new udmrt gps object
+     * @brief Construct a new UDMRT GPS object
      * 
-     * @param name - The name of the senor
+     * @param name - The name of the sensor
      * @param node - The ROS node this sensor is associated with.
      */
-    UDMRT_GPS(char* name, ros::NodeHandle* node);
+    UDMRT_GPS(char* name, NodeHandle* node);
 
     /**
-     * @brief This function initalized the ROS publishers as well as the Serial1 port
+     * @brief This function initializes the ROS publishers as well as the Serial1 port
      * 
      * @param dataPublisher - A pointer to the ROS publisher that is to be used for the Data
      * @param diagnosticPublisher - A pointer to the ROS publisher that is to be used for the diagnostics message
      * @return true - Returns true if Serial1 started, else false
      */
-    bool init(ros::Publisher* dataPublisher, ros::Publisher* diagnosticPublisher);
+    bool init(Publisher* dataPublisher, Publisher* diagnosticPublisher);
 
     /**
      * @brief The function that pulls data from the sensor and updates the messages. Called by spin()
@@ -58,10 +56,10 @@ class UDMRT_GPS: public UDMRT_Sensor<sensor_msgs::NavSatFix>{
 
     bool gpsConnected;
     bool gpsError;
-    int lastTimeStamp = millis();
+    unsigned long lastTimeStamp;
 
     /**
-     * @brief This function updates the diagnostic values to inicate an error
+     * @brief This function updates the diagnostic values to indicate an error
      * 
      */
     void errorState();
@@ -73,7 +71,7 @@ class UDMRT_GPS: public UDMRT_Sensor<sensor_msgs::NavSatFix>{
     void warningState();
 
     /**
-     * @brief This function updates the diagnotic values to indicate all OK
+     * @brief This function updates the diagnostic values to indicate all OK
      * 
      */
     void okState();

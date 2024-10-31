@@ -7,10 +7,10 @@ print("SETTING VELOCITY MODE")
 # motor.write_goal_velocity()
 while True:
     motor.write_goal_velocity(200)
-    while motor.read_present_position() < 2000:
+    while motor.read_present_position() > 0:
         print(motor.read_present_position())
         pass
     motor.write_goal_velocity(-100)
-    while motor.read_present_position() > 0:
+    while motor.read_present_position() < 2000:
         print(motor.read_present_position())
         pass

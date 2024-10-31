@@ -3,7 +3,9 @@ import time
 
 motor = DynamixelMX('/dev/ttyAMA0', 1, 57600)
 while True:
-    motor.write_goal_position(motor.get_max_position())
+    motor.write_goal_position(motor.get_max_position() / 4)
+    time.sleep(1.5)
+    motor.write_goal_position(motor.get_max_position() / 2)
     time.sleep(1.5)
     motor.write_goal_position(motor.get_min_position())
     time.sleep(1.5)

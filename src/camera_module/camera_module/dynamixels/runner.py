@@ -11,6 +11,6 @@ while True:
         print(motor.read_present_position())
         pass
     motor.write_goal_velocity(-100)
-    while motor.read_present_position() < 2000:
+    while motor.read_present_position() > 100:
         print(motor.read_present_position())
         pass

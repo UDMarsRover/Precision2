@@ -31,7 +31,7 @@ class Map(QWidget):
     def set_image(self):
         #This loads the image (Obviously change the path to where it is in the Pi)
         path = r"C:\Users\weave\Documents\Programming\PythonScripts\KLTestImage.jpg"
-        #This is the path to the map with the pins overlayed
+        #This is the path to the map with the pins overlaid
         pin_path = r"C:\Users\weave\Documents\Programming\PythonScripts\KLTestImage_withPins.jpg"
 
         image = Image.open(path)

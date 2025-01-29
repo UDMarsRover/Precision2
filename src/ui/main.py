@@ -50,7 +50,7 @@ class Button(QPushButton):
 
     def confirm_exit(self, fakeArgument1):  
         app.closeAllWindows()
-        terminal.process.close()
+        #terminal.process.close()
         
     def cancel_exit(self, fakeArgument1):
         closer.close()
@@ -246,7 +246,7 @@ class Camera(QWidget):
         self.sliderH.setSliderPosition(self.positionH)
         """      
 
-"""
+
 class Terminal(QWidget):
     def __init__(self):
         super().__init__()
@@ -256,7 +256,7 @@ class Terminal(QWidget):
         self.terminalOut.setReadOnly(True)
 
         self.terminalIn = QLineEdit()
-        self.terminalIn.returnPressed.connect(self.execute_command)  # Run command on Enter
+        self.terminalIn.returnPressed.connect(self.run_command)  # Run command on Enter
 
         #Adds everything to the layouts
         layout = QVBoxLayout()
@@ -266,45 +266,25 @@ class Terminal(QWidget):
 
         #Starts a process to auto-update the output terminal
         self.process = QProcess()
-        self.process.readyReadStandardOutput.connect(self.handle_output)
-        self.process.start("cmd.exe")  # Or "bash" on linux
+        self.process.readyReadStandardOutput.connect(self.handle_stdout)
+        self.process.readyReadStandardError.connect(self.handle_stderr)
 
-        self.environment = {}
-
-    def handle_output(self): #Updates the output
+    def run_command(self): #Updates the output
+        command = self.text_edit.toPlainText().strip()
         command = "ls" if sys.platform != "win32" else "dir"
         self.output_area.append(f"Executing: {command}")
         self.process.start(command)
 
+    def handle_stdout(self):
+        output = self.process.readAllStandardOutput().data().decode()
+        self.text_edit.append(output)
+
+    def handle_stderr(self):
+        """Handles error output from the process."""
+        error = self.process.readAllStandardError().data().decode()
+        self.text_edit.append(f"Error: {error}")
     
-    def execute_command(self):
-        # Get the text from the input field
-        command = self.terminalIn.text().strip()
-        
-        # Display the command in the output area
-        self.terminalOut.append(f">>> {command}")
-        
-        # Try executing the command
-        try:
-            # Compile and execute code within the local environment
-            result = eval(command, self.environment)
-            if result is not None:
-                self.terminalOut.append(str(result))
-        except Exception as e:
-            self.terminalOut.append(f"Error: {e}")
-        
-        # Clear the input field
-        self.terminalIn.clear() 
 
-    def parse(self, app):
-        parser = QCommandLineParser()
-
-        parser.addHelpOption()
-        parser.addVersionOption()
-
-        parser.process(app)
-
-"""
 class Output_Window(QWidget):
     #Setup subscriber here ***
     def __init__(self):
@@ -330,7 +310,7 @@ if __name__ == "__main__":
     window = windows.mainWindow()
     camera = Camera()
     global terminal     #Global so it can be closed in "exit_confirmed"
-    #terminal = Terminal()
+    terminal = Terminal()
     mapObj = map.Map()
     output_window = Output_Window()
 
@@ -373,7 +353,7 @@ if __name__ == "__main__":
     #Adding all the widgets to the window
     window.layout.addWidget(camera, 0,0, 2,2)
     window.layout.addWidget(lightsContainer, 0,2)
-    #window.layout.addWidget(terminal, 2,2)
+    window.layout.addWidget(terminal, 2,2)
     window.layout.addWidget(exitButton, 0,5)
     window.layout.addWidget(mapObj, 2,0)
     window.layout.addWidget(output_window, 1,2)

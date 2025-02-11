@@ -4,6 +4,9 @@ Welcome to the repository for Precision2. This repository is based on much of th
 ## Wiki
 General/getting started information can be found in this ReadMe. However, more specific, generalized information for developers can be found in [the wiki](https://github.com/UDMarsRover/Precision2/wiki).
 
+### Useful Resources
+- [Arm Development](https://github.com/UDMarsRover/Precision2/wiki/Arm-Development)
+
 ## Step 1 - Install an Ubuntu 22.04 VM on your laptop
 I recommend VMWare Workstation Pro 17 for Windows, VMWare Fusion for Mac, or KVM for Linux. You will have to do your own research to figure out how to install an Ubuntu 22.04 Desktop VM with your selected VM software. 
 

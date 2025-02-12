@@ -1,6 +1,6 @@
 import sys
 import cv2
-from PyQt6.QtWidgets import *
+from PyQt6.QtWidgets import *       #Change to specifics when finalized
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt, QProcess, QTimer, QCommandLineOption, QCommandLineParser
 import map
@@ -107,7 +107,7 @@ class Button(QPushButton):
         )
     
     def take_screenshot(self):
-        pass #Do this when Josh figures out how signals work
+        pass #Do this once the camera is setup
 
     def high_res_camera(self):
         global cameraMode
@@ -280,8 +280,9 @@ class Terminal(QWidget):
         self.text_edit.append(output)
 
     def handle_stderr(self):
-        """Handles error output from the process."""
+        #Handles error output from the process.
         error = self.process.readAllStandardError().data().decode()
+        print(error)
         self.text_edit.append(f"Error: {error}")
     
 

@@ -1,6 +1,9 @@
 from PyQt6.QtWidgets import *
+from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QPixmap, QImage
 from PIL import Image, ImageDraw
+import time, json
+from json import JSONEncoder
 
 
 class Map(QWidget):
@@ -11,22 +14,38 @@ class Map(QWidget):
 
         self.pin_window = QPushButton("Open Pins")
         self.pin_window.clicked.connect(self.open_pin_window)
-        self.pin_button = QPushButton("Place Pin")
-        self.pin_button.clicked.connect(self.place_pin)
+        #self.pin_button = QPushButton("Place Pins")
+        #self.pin_button.clicked.connect(self.place_pin)
+        self.pin_save = QPushButton("Save Pins")
+        self.pin_save.clicked.connect(self.save_pins)
 
         self.layout = QGridLayout()
         self.layout.addWidget(self.image_label, 0,0, 3,3)
-        self.layout.addWidget(self.pin_button, 3,0)
+        #self.layout.addWidget(self.pin_button, 3,0)
         self.layout.addWidget(self.pin_window, 3,1)
+        self.layout.addWidget(self.pin_save, 3,2)
 
 
         self.setLayout(self.layout)
         
-        self.pin_locations = []
+        self.pins = []
+        try:
+            with open('pin_data.json', 'r') as f:
+                self.pins_dicts = json.load(f)
+            self.pins = [Pin.from_dict(data) for data in self.pins_dicts]      ##FIX ME! It isn't recognizing the cls identifier?
+
+        except FileNotFoundError:
+            print("File not found")
+        except Exception:
+            print("Somethin aint workin with da file")
 
         self.set_image()
 
         self.show()
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.set_image)
+        self.timer.start(5000)
     
     def set_image(self):
         #This loads the image (Obviously change the path to where it is in the Pi)
@@ -39,14 +58,23 @@ class Map(QWidget):
 
         #Place pins at the stored locations
         pin_radius = 10
-        for lat, lon in self.pin_locations:
-            x, y = self.to_pixels(lat, lon)
-            print(x, y)
-            draw.circle((x,y), pin_radius, "red")
-        #This saves the image so it can be re-opened by the QImage class
-        image.save(pin_path)
+        for pin in self.pins:
+            x = self.dms_to_decimal(pin.lat)
+            y = self.dms_to_decimal(pin.lon)
+            draw.circle(self.to_pixels(x,y), pin_radius, "red")
+        #Get Rover Lat and Lon (Decimal) and add rover icon here
 
-        #Re-opens the image and sets the windows image to that file
+        ICON_WIDTH = 40
+        ICON_HEIGHT = 40
+
+        icon = Image.open("rover icon.png")   #Give this an actual path when you have the icon
+
+        icon.resize((ICON_WIDTH,ICON_HEIGHT))
+        #Add rotation here
+        position = self.to_pixels(self.dms_to_decimal("39°44'16.79\"N") - ICON_WIDTH/2, self.dms_to_decimal("84°10'35.00\"W") - ICON_HEIGHT/2)
+        image.paste(icon, position)
+
+        image.save(pin_path)
         image = QImage(pin_path)
 
         #Update these to make it fit
@@ -72,41 +100,68 @@ class Map(QWidget):
         self.yPixel = self.heightP * (lat - self.coordsUL[0]) / (self.coordsBR[0] - self.coordsUL[0])
         self.xPixel = self.widthP * (self.coordsUL[1]- lon) / (self.coordsUL[1] - self.coordsBR[1])
 
-        print(self.xPixel, self.yPixel)
-
         return int(self.xPixel), int(self.yPixel)
     
-    def place_pin(self):
+    def place_pin_current_location(self):
         #add lat and long coords input
-        self.lat =  "39°44'16.79\"N"
+        self.lat = "39°44'16.79\"N"
         self.lon = "84°10'35.00\"W"
 
-        self.lat = self.dms_to_decimal(self.lat)
-        self.lon = self.dms_to_decimal(self.lon)
-
-        self.pin_locations.append((self.lat, self.lon))
+        self.pins.append(Pin(self.lat, self.lon, "Placeholder"))
         self.set_image()
+        self.update_pins()
 
         #How to actually add? Keep list of locations, auto add (timer), manual add (button)
         #just pins with numerical labels?
 
+    def place_picked_pin(self):
+        #How are we going to type the degree character?
+        input = self.pin_select.toPlainText()
+        i = input.find(",")
+        x = float(input[:i])
+        y = float(input[i+2:])
+        self.pins.append( Pin(x, y, "Placeholder") )
+        self.update_pins()
+
+
     def open_pin_window(self):
         self.window = QWidget()
+        self.window.local_pin = QPushButton("Place Pin On Current Location")
+        self.window.local_pin.clicked.connect(self.place_pin_current_location)
+        self.window.pick_pin = QPushButton("Place Pin By Coordinate")
+        self.window.label = QLabel("(With a comma and a space in between lat and lon. ', ')")
+        self.window.pick_pin.clicked.connect(self.place_picked_pin)
+        self.window.pin_select = QTextEdit()
 
-        self.window.layout = QVBoxLayout()
+        self.window.layout = QGridLayout()
+
+
         self.window.text_out = QTextEdit()
 
         self.window.text_out.setReadOnly(True)
 
-        self.window.layout.addWidget(self.window.text_out)
+        self.window.layout.addWidget(self.window.text_out,0,0, 3,1)
+        self.window.layout.addWidget(self.window.local_pin, 1,1)
+        self.window.layout.addWidget(self.window.pick_pin, 1,2)
+        self.window.layout.addWidget(self.window.label, 0,2)
+        self.window.layout.addWidget(self.window.pin_select, 2,2)
 
         self.window.setLayout(self.window.layout)
 
-        self.window.text_out.append("Latitude and Longitude in Decimal")    #Very easy to change to DMS if needed
-        for x,y in self.pin_locations:
-            self.window.text_out.append("(" + str(x) + ", " + str(y) + ")")
+        #Add timestamps?
+        self.update_pins()
         
         self.window.show()
+
+    def update_pins(self):
+        self.window.text_out.clear()
+        for pin in self.pins:
+            self.window.text_out.append("(" + pin.lat + ", " + pin.lon + ")")
+
+    def save_pins(self):
+        self.pins_dicts = [pin.__dict__ for pin in self.pins]
+        with open("pin_data.json", 'w') as f:
+            json.dump(self.pins_dicts, f)
 
     def dms_to_decimal(self, dms_str):
         # Split the string by degree, minute, and second symbols
@@ -132,3 +187,23 @@ class Map(QWidget):
             decimal_degrees = -decimal_degrees
         
         return decimal_degrees
+    
+    def decimal_to_dms(deg, is_latitude):
+        direction = "N" if deg >= 0 else "S" if is_latitude else "E" if deg >= 0 else "W"
+        
+        deg = abs(deg)
+        degrees = int(deg)
+        minutes_float = (deg - degrees) * 60
+        minutes = int(minutes_float)
+        seconds = (minutes_float - minutes) * 60
+        
+        return f"{degrees}°{minutes}'{seconds:.2f}\" {direction}"
+
+class Pin():
+    def __init__(self, x, y, t):
+        self.lat = x
+        self.lon = y
+        self.timeStamp = t
+
+    def from_dict(cls, data):
+        return cls(**data)

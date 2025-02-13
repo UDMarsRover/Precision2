@@ -2,8 +2,7 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QPixmap, QImage
 from PIL import Image, ImageDraw
-import time, json
-from json import JSONEncoder
+import json
 
 
 class Map(QWidget):
@@ -14,14 +13,11 @@ class Map(QWidget):
 
         self.pin_window = QPushButton("Open Pins")
         self.pin_window.clicked.connect(self.open_pin_window)
-        #self.pin_button = QPushButton("Place Pins")
-        #self.pin_button.clicked.connect(self.place_pin)
         self.pin_save = QPushButton("Save Pins")
         self.pin_save.clicked.connect(self.save_pins)
 
         self.layout = QGridLayout()
         self.layout.addWidget(self.image_label, 0,0, 3,3)
-        #self.layout.addWidget(self.pin_button, 3,0)
         self.layout.addWidget(self.pin_window, 3,1)
         self.layout.addWidget(self.pin_save, 3,2)
 
@@ -67,7 +63,7 @@ class Map(QWidget):
         ICON_WIDTH = 40
         ICON_HEIGHT = 40
 
-        icon = Image.open("rover icon.png")   #Give this an actual path when you have the icon
+        icon = Image.open("rover icon.png")
 
         icon.resize((ICON_WIDTH,ICON_HEIGHT))
         #Add rotation here
@@ -110,8 +106,6 @@ class Map(QWidget):
         self.pins.append(Pin(self.lat, self.lon, "Placeholder"))
         self.set_image()
         self.update_pins()
-
-        #How to actually add? Keep list of locations, auto add (timer), manual add (button)
         #just pins with numerical labels?
 
     def place_picked_pin(self):
@@ -148,7 +142,6 @@ class Map(QWidget):
 
         self.window.setLayout(self.window.layout)
 
-        #Add timestamps?
         self.update_pins()
         
         self.window.show()

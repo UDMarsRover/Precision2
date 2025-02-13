@@ -200,7 +200,7 @@ class Camera(QWidget):
         self.layout.addWidget(self.sliderV, 3,3)
         self.setLayout(self.layout)
         
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture("192.168.0.174:8889/cam")
 
         #Creates a timer that will update the webcam feed every 30 milliseconds
         self.timer = QTimer(self)

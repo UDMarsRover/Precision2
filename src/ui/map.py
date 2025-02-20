@@ -25,15 +25,7 @@ class Map(QWidget):
         self.setLayout(self.layout)
         
         self.pins = []
-        try:
-            with open('pin_data.json', 'r') as f:
-                self.pins_dicts = json.load(f)
-            self.pins = [Pin.from_dict(data) for data in self.pins_dicts]      ##FIX ME! It isn't recognizing the cls identifier?
-
-        except FileNotFoundError:
-            print("File not found")
-        except Exception:
-            print("Somethin aint workin with da file")
+        self.load_pins()
 
         self.set_image()
 
@@ -44,7 +36,7 @@ class Map(QWidget):
         self.timer.start(5000)
     
     def set_image(self):
-        #This loads the image (Obviously change the path to where it is in the Pi)
+        #This loads the image (change the path to where it is in the run computer)
         path = r"C:\Users\weave\Documents\Programming\PythonScripts\KLTestImage.jpg"
         #This is the path to the map with the pins overlaid
         pin_path = r"C:\Users\weave\Documents\Programming\PythonScripts\KLTestImage_withPins.jpg"
@@ -117,7 +109,6 @@ class Map(QWidget):
         self.pins.append( Pin(x, y, "Placeholder") )
         self.update_pins()
 
-
     def open_pin_window(self):
         self.window = QWidget()
         self.window.local_pin = QPushButton("Place Pin On Current Location")
@@ -152,9 +143,18 @@ class Map(QWidget):
             self.window.text_out.append("(" + pin.lat + ", " + pin.lon + ")")
 
     def save_pins(self):
-        self.pins_dicts = [pin.__dict__ for pin in self.pins]
+        self.pins_dicts = [pin.to_dict() for pin in self.pins]
         with open("pin_data.json", 'w') as f:
-            json.dump(self.pins_dicts, f)
+            json.dump(self.pins_dicts, f, indent=4)
+
+    def load_pins(self):
+        #try:
+        with open('pin_data.json', 'r') as f:
+            self.pins_dicts = json.load(f)
+            for data in self.pins_dicts:     
+                self.pins.append(Pin.from_dict(Pin, data))
+        #except Exception as e:
+        #    print("There was an error reading the file: " + str(e))
 
     def dms_to_decimal(self, dms_str):
         # Split the string by degree, minute, and second symbols
@@ -197,6 +197,11 @@ class Pin():
         self.lat = x
         self.lon = y
         self.timeStamp = t
+    def to_dict(self):
+        return {"Lattitude" : self.lat, "Longitude":self.lon, "Time": self.timeStamp}
 
     def from_dict(cls, data):
-        return cls(**data)
+        return cls(data["Lattitude"], data["Longitude"], data["Time"])
+    
+    def toString(self):
+        return str(self.lat) + " " + str(self.lon) + " " + str(self.timeStamp)

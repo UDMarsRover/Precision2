@@ -1,45 +1,144 @@
-import serial
-from .serial_protocol import construct_message, read_message, CommandType
+from serial import SerialException
+from UDMRTMotorSerial import UDMRTMotorSerial
+import time
+import threading
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QSlider, QTableWidget, QTableWidgetItem
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QObject
+import sys
 
-class MotorController:
-    def __init__(self, port, baud_rate=115200, timeout=1):
-        self.port = port
-        self.baud_rate = baud_rate
-        self.timeout = timeout
-        self.serial_connection = None
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
 
-    def connect(self):
-        self.serial_connection = serial.Serial(self.port, self.baud_rate, timeout=self.timeout)
-        if self.serial_connection.is_open:
-            print(f"Connected to Arduino on port {self.port}")
-        else:
-            print(f"Failed to connect to Arduino on port {self.port}")
+        self.setWindowTitle("Sample GUI")
 
-    def disconnect(self):
-        if self.serial_connection and self.serial_connection.is_open:
-            self.serial_connection.close()
-            print(f"Disconnected from Arduino on port {self.port}")
+        # Create the main layout
+        layout = QVBoxLayout()
 
-    def send_command(self, command: CommandType, data=None):
-        if self.serial_connection and self.serial_connection.is_open:
-            message = construct_message(command.value, data)
-            self.serial_connection.write(message)
+        # Create a slider
+        self.slider = QSlider(Qt.Orientation.Horizontal)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(300)
+        self.slider.setValue(0)
+        self.slider.valueChanged.connect(self.on_slider_value_changed)
+        layout.addWidget(self.slider)
 
-    def toggle_led(self):
-        self.send_command(CommandType.LED, data='T')
+        # Create a table
+        self.table = QTableWidget(5, 3)  # 5 rows, 3 columns
+        self.table.setHorizontalHeaderLabels(["Column 1", "Column 2", "Column 3"])
+        for i in range(5):
+            for j in range(3):
+                self.table.setItem(i, j, QTableWidgetItem(f"Item {i+1},{j+1}"))
+        layout.addWidget(self.table)
+        self.mc = MotorController()
+        self.mc.data_received.connect(self.update_table)
+        # self.mc.start_listening()
+        # Set the central widget
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
 
-    def set_led(self, state):
-        self.send_command(CommandType.LED, data='1' if state else '0')
+        # Create a QTimer to limit the refresh rate
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_motor_controller)
+        self.timer.start(100)  # 100ms interval for 10Hz
+        self.mc.start_listening()
 
-    def get_led_status(self):
-        self.send_command(CommandType.STATUS, data='L')
-        return self.read_response() == '1'
+        self.slider_value = 0
 
-    def read_response(self):
-        if self.serial_connection and self.serial_connection.is_open:
-            response = self.serial_connection.readline().decode().strip()
-            return response
-        return None
+    def on_slider_value_changed(self, value):
+        self.slider_value = value
 
-    def __del__(self):
-        self.disconnect()
+    def update_motor_controller(self):
+        # parsed_data = self.mc.sniff()
+        # try: self.update_table(parsed_data)
+        # except: pass
+        velocities = [self.slider_value] + [0]*5
+        self.mc.serial_conn.send_velocity_set(velocities)
+
+    def update_table(self, data):
+        for i, (temperature, voltage, current) in enumerate(data):
+            self.table.setItem(i, 0, QTableWidgetItem(f"{temperature:.1f}"))
+            self.table.setItem(i, 1, QTableWidgetItem(f"{voltage:.1f}"))
+            self.table.setItem(i, 2, QTableWidgetItem(f"{current:.1f}"))
+
+class MotorController(QObject):
+    data_received = pyqtSignal(list)
+
+    def __init__(self):
+        super().__init__()
+        self.serial_conn = UDMRTMotorSerial(port="/dev/cu.usbmodem2101", baudrate=115200)
+        if not self.serial_conn.connect():
+            raise SerialException("Could not connect to motor controller")
+        self.running = True
+
+    def sniff(self):
+        self.serial_conn.spin_once()
+        parsed_data = self.serial_conn.spin_once()
+        return parsed_data
+
+    def listen(self):
+        while self.running:
+            parsed_data = self.serial_conn.spin_once()
+            self.data_received.emit(parsed_data)
+            # for i, (temperature, voltage, current) in enumerate(parsed_data):
+            #     print(f"Motor {i+1} - temperature: {temperature:.1f}, voltage: {voltage:.1f}, current: {current:.1f}")
+            time.sleep(0.1)
+
+    def get_input(self):
+        while self.running:
+            command = input("Enter command: ")
+            if command == "brake":
+                self.serial_conn.send_brake()
+            elif command == "idle":
+                self.serial_conn.send_idle()
+            elif command == "exit":
+                self.running = False
+            else:
+                try:
+                    velocities = [float(vel) for vel in command.split()]
+                    self.serial_conn.send_velocity_set(velocities)
+                except ValueError:
+                    print("Invalid command")
+            time.sleep(0.1)
+
+    def start_listening(self):
+        self.listener_thread = threading.Thread(target=self.listen)
+        self.listener_thread.start()
+
+    def loop_input(self):
+        self.input_thread = threading.Thread(target=self.get_input)
+        self.input_thread.start()
+
+    def stop_listening(self):
+        self.running = False
+        self.listener_thread.join()
+
+    def kill(self):
+        self.serial_conn.send_velocity_set([0]*6)
+        self.running = False
+        self.listener_thread.join()
+        self.input_thread.join()
+        self.serial_conn.close()
+
+def main():
+    try:
+        app = QApplication(sys.argv)
+        window = MainWindow()
+        window.show()
+        sys.exit(app.exec())
+    except KeyboardInterrupt:
+        window.mc.kill()
+        sys.exit(0)
+    # motor_controller = MotorController()
+    # motor_controller.start_listening()
+    # motor_controller.loop_input()
+    # try:
+    #     while True:
+    #         time.sleep(1)
+    # except KeyboardInterrupt:
+    #     motor_controller.stop_listening()
+
+
+if __name__ == '__main__':
+    main()

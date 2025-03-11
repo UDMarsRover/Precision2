@@ -55,7 +55,7 @@ class Map(QWidget):
         ICON_WIDTH = 40
         ICON_HEIGHT = 40
 
-        icon = Image.open("rover icon.png")
+        icon = Image.open("rover_icon.png")
 
         icon.resize((ICON_WIDTH,ICON_HEIGHT))
         #Add rotation here
@@ -148,13 +148,13 @@ class Map(QWidget):
             json.dump(self.pins_dicts, f, indent=4)
 
     def load_pins(self):
-        #try:
-        with open('pin_data.json', 'r') as f:
-            self.pins_dicts = json.load(f)
-            for data in self.pins_dicts:     
-                self.pins.append(Pin.from_dict(Pin, data))
-        #except Exception as e:
-        #    print("There was an error reading the file: " + str(e))
+        try:
+            with open('pin_data.json', 'r') as f:
+                self.pins_dicts = json.load(f)
+                for data in self.pins_dicts:     
+                    self.pins.append(Pin.from_dict(Pin, data))
+        except Exception as e:
+            print("There was an error reading the file: " + str(e))
 
     def dms_to_decimal(self, dms_str):
         # Split the string by degree, minute, and second symbols

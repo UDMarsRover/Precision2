@@ -5,6 +5,7 @@ from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt, QProcess, QTimer, QCommandLineOption, QCommandLineParser
 import map
 import windows
+import shlex
 
 class Button(QPushButton):
 
@@ -268,22 +269,37 @@ class Terminal(QWidget):
         self.process = QProcess()
         self.process.readyReadStandardOutput.connect(self.handle_stdout)
         self.process.readyReadStandardError.connect(self.handle_stderr)
+        self.process.finished.connect(self.finished)
 
     def run_command(self): #Updates the output
-        command = self.text_edit.toPlainText().strip()
-        command = "ls" if sys.platform != "win32" else "dir"
-        self.output_area.append(f"Executing: {command}")
-        self.process.start(command)
+        command = self.terminalIn.text().strip()
+        self.terminalIn.clear()
+        self.terminalOut.append(f"> {command}")
+        
+        args = shlex.split(command)
+        if not args:
+            return
+        if len(args) == 1:
+            program = "bash.exe"
+            arguments = args[0]
+        program = args[0]
+        arguments = args[1:]
+        
+        yeeter = self.process.start(program, arguments)
+        print(yeeter)
 
     def handle_stdout(self):
         output = self.process.readAllStandardOutput().data().decode()
-        self.text_edit.append(output)
+        self.terminalOut.append(output)
 
     def handle_stderr(self):
         #Handles error output from the process.
         error = self.process.readAllStandardError().data().decode()
         print(error)
-        self.text_edit.append(f"Error: {error}")
+        self.terminalOut.append(f"Error: {error}")
+    
+    def finished(self):
+        self.terminalOut.append("Process finished")
     
 
 class Output_Window(QWidget):

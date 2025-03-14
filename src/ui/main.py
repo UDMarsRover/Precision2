@@ -169,10 +169,10 @@ class Camera(QWidget):
         #Creates camera mode buttons
         global cameraMode
         cameraMode = "High Res"
-        global highResCam
+        global highResCam       #Remove buttons, move to main declaration?
         highResCam = Button("High Res", "gray", "high_res_camera")
         highResCam.setStyleSheet("QPushButton {"       #Sets the high res camera button to blue (active)
-            "background-color: blue;"
+            "background-color: blue;"       #Switch stylesheet to inheritance based? How to do that in Python?
             "color: black;"               
             "}"
             "QPushButton:hover {"
@@ -185,6 +185,7 @@ class Camera(QWidget):
         self.sliderH.setRange(0,100)
         self.sliderV.setRange(0,100)
         
+        #Adds the buttons to a container
         self.button_container = QWidget()
         self.button_container.layout = QHBoxLayout()
         self.button_container.layout.addWidget(infraRedCam)
@@ -200,7 +201,7 @@ class Camera(QWidget):
         self.layout.addWidget(self.sliderV, 3,3)
         self.setLayout(self.layout)
         
-        self.cap = cv2.VideoCapture("192.168.0.174:8889/cam")
+        self.cap = cv2.VideoCapture("192.168.0.114:8889/cam")
 
         #Creates a timer that will update the webcam feed every 30 milliseconds
         self.timer = QTimer(self)
@@ -226,10 +227,6 @@ class Camera(QWidget):
             
             self.show()
         
-        #Is it better to add a segment here so the slide bars update based 
-        #on time intervals, or update only when their value is changed?
-    """
-    Fix me when you know how these values will be read
     
     def update_bars(self):
         #These are all the variables the angle bars would need from the camera gimble
@@ -244,10 +241,7 @@ class Camera(QWidget):
 
         self.positionH = 2* self.maxH / self.angleH
         self.sliderH.setSliderPosition(self.positionH)
-        """      
-
-
-
+           
 class Output_Window(QWidget):
     #Setup subscriber here ***
     def __init__(self):

@@ -60,6 +60,7 @@ class Map(QWidget):
         icon.resize((ICON_WIDTH,ICON_HEIGHT))
         #Add rotation here
         position = self.to_pixels(self.dms_to_decimal("39°44'16.79\"N") - ICON_WIDTH/2, self.dms_to_decimal("84°10'35.00\"W") - ICON_HEIGHT/2)
+        icon.rotate(angle=45, center=(ICON_HEIGHT/2, ICON_WIDTH/2))
         image.paste(icon, position)
 
         image.save(pin_path)
@@ -191,6 +192,7 @@ class Map(QWidget):
         seconds = (minutes_float - minutes) * 60
         
         return f"{degrees}°{minutes}'{seconds:.2f}\" {direction}"
+
 
 class Pin():
     def __init__(self, x, y, t):

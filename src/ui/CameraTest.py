@@ -1,25 +1,29 @@
 import cv2
-from PyQt6.QtCore import QTimer
+import sys
+from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QImage, QPixmap
-from PyQt6.QtWidgets import QApplication, QWidget, QBoxLayout, QMainWindow, QLabel
+from PyQt6.QtWidgets import QApplication, QWidget, QBoxLayout, QMainWindow
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 from Capture import WebRTCVideoCapture as webRTC
 # from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit
 
-class CameraTest(QWidget):
+
+# Now unneccessary template camera class
+class Camera(QWidget):
     def __init__(self):
         super().__init__()
+
 
         self.cap = cv2.VideoCapture("192.168.0.114:8889/cam")
         self.cap = cv2.VideoCapture(0)
 
         self.image_label = QLabel()
         self.layout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
-        self.layout.addWidget(self.image_label)
         self.setLayout(self.layout)
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update)
-        self.timer.start(30)
+        # self.timer = QTimer()
+        # self.timer.timeout.connect(self.update)
+        # self.timer.start(30)
 
 
     def update(self):
@@ -43,13 +47,17 @@ class CameraTest(QWidget):
             self.show()
 
 if __name__ == "__main__":
-    app = QApplication([])
-    cam = CameraTest()
+    app = QApplication(sys.argv)
+    cam = Camera()
+
+    url = QUrl("https://www.wikipedia.org/")      #QUrl("192.168.0.114:8889/cam")
+    browser = QWebEngineView()
+    browser.setUrl(url)
 
     window = QMainWindow()
 
     central_widget = QWidget()  # The main content widget
-    window.setCentralWidget(central_widget)
+    window.setCentralWidget(browser)
     window.layout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
     
     window.layout.addWidget(cam)

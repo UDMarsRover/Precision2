@@ -4,26 +4,30 @@ from PyQt6.QtGui import QPixmap, QImage
 from PIL import Image, ImageDraw
 import json
 
-
+'''
+PyQt6 class (extends QWidget) for the UI minimap
+'''
 class Map(QWidget):
     def __init__(self):
         super().__init__()
 
         self.image_label = QLabel()
 
+        # Creating buttons
         self.pin_window = QPushButton("Open Pins")
         self.pin_window.clicked.connect(self.open_pin_window)
         self.pin_save = QPushButton("Save Pins")
         self.pin_save.clicked.connect(self.save_pins)
 
+        # Adding everything to the layout
         self.layout = QGridLayout()
         self.layout.addWidget(self.image_label, 0,0, 3,3)
         self.layout.addWidget(self.pin_window, 3,1)
         self.layout.addWidget(self.pin_save, 3,2)
 
-
         self.setLayout(self.layout)
         
+        #Initializing pins, loading them from a json file
         self.pins = []
         self.load_pins()
 
@@ -31,10 +35,15 @@ class Map(QWidget):
 
         self.show()
 
+        #Sets up 
         self.timer = QTimer()
         self.timer.timeout.connect(self.set_image)
         self.timer.start(5000)
     
+    '''
+    Sets the image 
+    '''
+
     def set_image(self):
         #This loads the image (change the path to where it is in the run computer)
         path = r"C:\Users\weave\Documents\Programming\PythonScripts\KLTestImage.jpg"
@@ -66,15 +75,22 @@ class Map(QWidget):
         image.save(pin_path)
         image = QImage(pin_path)
 
-        #Update these to make it fit
+        # Resize to the window size
         self.new_width = 600
         self.new_height = 450
         scaled_image = image.scaled(self.new_width, self.new_height)
 
+        # Finalizing setting the image
         pixmap = QPixmap.fromImage(scaled_image)
         self.image_label.setPixmap(pixmap)
         self.show()
     
+
+    '''
+    Converts pixel coordinates to latitude and longitude
+    Params: latitude, longitude (IN DECIMAL)
+    Return: integer touple (x pixel, y pixel)
+    '''
     def to_pixels(self, lat, lon):
         #The coordinates for the upper left and bottom righthand corners of the map
         self.coordsUL = self.dms_to_decimal("39°44'13.39\"N"), self.dms_to_decimal("84°10'42.79\"W")
@@ -91,6 +107,9 @@ class Map(QWidget):
 
         return int(self.xPixel), int(self.yPixel)
     
+    '''
+    Places a pin on the rover's current location. (Still needs to be connected to gps coords)
+    '''
     def place_pin_current_location(self):
         #add lat and long coords input
         self.lat = "39°44'16.79\"N"
@@ -101,6 +120,9 @@ class Map(QWidget):
         self.update_pins()
         #just pins with numerical labels?
 
+    '''
+    Uses the input from the pinwindow to place a pin at a given 
+    '''
     def place_picked_pin(self):
         #How are we going to type the degree character?
         input = self.pin_select.toPlainText()
@@ -157,6 +179,11 @@ class Map(QWidget):
         except Exception as e:
             print("There was an error reading the file: " + str(e))
 
+    '''
+    Converts DMS coordinates to decimal
+    Params: dms (String), the dms lat/lon coordinate
+    Returns: double decimal degrees
+    '''
     def dms_to_decimal(self, dms_str):
         # Split the string by degree, minute, and second symbols
         dms_str.strip()
@@ -182,6 +209,12 @@ class Map(QWidget):
         
         return decimal_degrees
     
+    '''
+    Converts decimal to dms coordinates
+    Params: decimal coordinate
+    Returns: String, dms lat/lon coordinate
+
+    '''
     def decimal_to_dms(deg, is_latitude):
         direction = "N" if deg >= 0 else "S" if is_latitude else "E" if deg >= 0 else "W"
         
@@ -193,7 +226,10 @@ class Map(QWidget):
         
         return f"{degrees}°{minutes}'{seconds:.2f}\" {direction}"
 
-
+'''
+A pin object for storing and retrieving from JSON
+(Latitude and Longitude are stored in DMS, not decimal)
+'''
 class Pin():
     def __init__(self, x, y, t):
         self.lat = x

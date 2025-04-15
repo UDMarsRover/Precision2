@@ -30,8 +30,8 @@ class WebRTCVideoCapture:
         answer = await pc.createAnswer()
         await pc.setLocalDescription(answer)
 
-        print("\n📥 Your SDP Answer (send this back to signaling peer):\n")
-        print(pc.localDescription.sdp)
+        # print("\n📥 Your SDP Answer (send this back to signaling peer):\n")
+        # print(pc.localDescription.sdp)
 
         # Keep running
         await asyncio.Event().wait()

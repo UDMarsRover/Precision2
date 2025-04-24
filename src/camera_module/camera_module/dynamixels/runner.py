@@ -1,7 +1,7 @@
 from control import DynamixelMX
 import time
 
-motor = DynamixelMX('/dev/ttyAMA0', 1, 57600)
+motor = DynamixelMX('/dev/ttyAMA0', 1, 1000000)
 while True:
     motor.write_goal_position(int(motor.get_max_position() / 4))
     time.sleep(1.5)

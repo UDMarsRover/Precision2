@@ -1,21 +1,31 @@
 # import sys, tty, termios
 from dynamixel_sdk import * # Uses Dynamixel SDK library
 
-MY_DXL = 'X_SERIES'
-ADDR_TORQUE_ENABLE          = 64
+# MY_DXL = 'X_SERIES'
+# ADDR_TORQUE_ENABLE          = 64
+# ADDR_GOAL_POSITION          = 116
+# ADDR_PRESENT_POSITION       = 132
+# DXL_MINIMUM_POSITION_VALUE  = 0         # Refer to the Minimum Position Limit of product eManual
+# DXL_MAXIMUM_POSITION_VALUE  = 4095      # Refer to the Maximum Position Limit of product eManual
+# BAUDRATE                    = 57600
 ADDR_GOAL_VELOCITY          = 104
-ADDR_GOAL_POSITION          = 116
-ADDR_PRESENT_POSITION       = 132
+
 OPERATING_MODE              = 11
 VELOCITY_MODE               = 1
 POSITION_MODE               = 3
-DXL_MINIMUM_POSITION_VALUE  = 0         # Refer to the Minimum Position Limit of product eManual
-DXL_MAXIMUM_POSITION_VALUE  = 4095      # Refer to the Maximum Position Limit of product eManual
-BAUDRATE                    = 57600
+
 TORQUE_ENABLE               = 1     # Value for enabling the torque
 TORQUE_DISABLE              = 0     # Value for disabling the torque
 DXL_MOVING_STATUS_THRESHOLD = 20    # Dynamixel moving status threshold
 PROTOCOL_VERSION            = 2.0
+# XL settings
+MY_DXL = 'XL320'
+ADDR_TORQUE_ENABLE          = 24
+ADDR_GOAL_POSITION          = 30
+ADDR_PRESENT_POSITION       = 37
+DXL_MINIMUM_POSITION_VALUE  = 0         # Refer to the CW Angle Limit of product eManual
+DXL_MAXIMUM_POSITION_VALUE  = 1023      # Refer to the CCW Angle Limit of product eManual
+BAUDRATE                    = 1000000   # Default Baudrate of XL-320 is 1Mbps
 
 
 class DynamixelMX:

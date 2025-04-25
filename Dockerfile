@@ -1,6 +1,8 @@
 # Use the official ROS2 Humble base image
 FROM ros:humble
 
+VOLUME /workspace
+
 # Install necessary packages
 RUN apt-get update && apt-get install -y \
     python3-colcon-common-extensions \
@@ -15,7 +17,6 @@ RUN apt-get update && apt-get install -y \
 
 # Copy the workspace into the container
 # COPY ./ /Precision2/
-VOLUME /workspace
 
 # Set the working directory to the workspace
 WORKDIR /workspace

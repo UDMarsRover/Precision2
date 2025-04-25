@@ -8,4 +8,6 @@ services:
     ipc: "host"
     volumes:
       - ./:/workspace
+    devices:
+      - /dev/ttyAMA0:/dev/ttyAMA0
     command: /bin/bash

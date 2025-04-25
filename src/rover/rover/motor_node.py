@@ -8,7 +8,7 @@ class MotorNode(Node):
     def __init__(self):
         super().__init__('motor_node')
         self.get_logger().info("MotorNode has been started.")
-        self.serial_conn = UDMRTMotorSerial(port="/dev/cu.usbmodem2101", baudrate=115200)
+        self.serial_conn = UDMRTMotorSerial(port="/dev/ttyAMA0", baudrate=115200)
         if not self.serial_conn.connect():
             self.get_logger().error("Could not connect to motor controller")
         

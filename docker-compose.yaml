@@ -1,6 +1,7 @@
 services:
   humble:
-    image: humble
+    build:
+      context: .
     stdin_open: true
     tty: true
     network_mode: "host"

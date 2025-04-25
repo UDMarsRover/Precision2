@@ -1,0 +1,10 @@
+services:
+  humble:
+    image: humble
+    stdin_open: true
+    tty: true
+    network_mode: "host"
+    ipc: "host"
+    volumes:
+      - ./:/workspace
+    command: /bin/bash

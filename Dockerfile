@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the workspace into the container
-COPY ./ /workspace/
+# COPY ./ /Precision2/
+VOLUME /workspace
 
 # Set the working directory to the workspace
 WORKDIR /workspace
@@ -26,3 +27,4 @@ RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build"
 
 # Set the entrypoint to the bash shell
 CMD ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && source /workspace/install/setup.bash && bash"]
+# CMD ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && bash"]

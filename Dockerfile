@@ -6,10 +6,12 @@ RUN apt-get update && apt-get install -y \
     python3-colcon-common-extensions \
     python3-rosdep \
     python3-vcstool \
+    python3-pip \
     build-essential \
     git \
     ros-humble-demo-nodes-py \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* && \
+    pip install -r /workspace/requirements.txt
 
 # Copy the workspace into the container
 # COPY ./ /Precision2/

@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray
-from drive.UDMRTMotorSerial import UDMRTMotorSerial
+from rover.drive.UDMRTMotorSerial import UDMRTMotorSerial
 
 
 class MotorNode(Node):
@@ -25,7 +25,7 @@ class MotorNode(Node):
 
     def motor_speed_callback(self, msg):
         self.current_speed = msg.data
-        
+
         self.get_logger().info(f"Received motor speed: {self.current_speed}")
         self.set_motor_speed(self.current_speed)
 

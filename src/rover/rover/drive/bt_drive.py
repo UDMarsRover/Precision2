@@ -14,7 +14,7 @@ class BTDrive:
         
         self.right_velocity = 0.0
         self.left_velocity = 0.0
-        self.max_velocity = 300
+        self.max_velocity = 150
         self.ls_received = False
 
         self.controller.run()

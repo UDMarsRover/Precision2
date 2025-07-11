@@ -1,6 +1,5 @@
 from pro_controller import NintendoProController
 from UDMRTMotorSerial import UDMRTMotorSerial
-import threading
 from serial.serialutil import SerialException
 class BTDrive:
     def __init__(self, serial_port='/dev/serial/by-id/usb-Adafruit_Feather_M4_CAN_CC17951D534837434E202020FF0F291F-if00'):
@@ -30,7 +29,7 @@ class BTDrive:
             self.right_velocity = right_velocity
             velocities = [self.right_velocity] * 3 + [self.left_velocity] * 3
             parsed_data = self.serial_conn.spin_once()
-            # print(f"Parsed data: {parsed_data}")
+            print(f"Parsed data: {parsed_data}")
             # self.serial_conn.send_velocity_set([0.0, 0.0, 100.0, 100.0, 100.0, 100.0])
             self.serial_conn.send_velocity_set(velocities)
             print(f"Setting velocities: Left: {self.left_velocity}, Right: {self.right_velocity}")

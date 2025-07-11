@@ -24,15 +24,15 @@ class BTDrive:
         if self.ls_received:
             x = getattr(self, 'lsx_value', 0.0)
             y = value
-            print(f"LS_y value: {y}, LS_x value: {x}")
+            # print(f"LS_y value: {y}, LS_x value: {x}")
             left_velocity, right_velocity = self.calculate_velocities(x, y)
             self.left_velocity = left_velocity
             self.right_velocity = right_velocity
             velocities = [self.right_velocity] * 3 + [self.left_velocity] * 3
             parsed_data = self.serial_conn.spin_once()
-            print(f"Parsed data: {parsed_data}")
-            self.serial_conn.send_velocity_set([0.0, 0.0, 100.0, 100.0, 100.0, 100.0])
-            # self.serial_conn.send_velocity_set(velocities)
+            # print(f"Parsed data: {parsed_data}")
+            # self.serial_conn.send_velocity_set([0.0, 0.0, 100.0, 100.0, 100.0, 100.0])
+            self.serial_conn.send_velocity_set(velocities)
             print(f"Setting velocities: Left: {self.left_velocity}, Right: {self.right_velocity}")
             self.ls_received = False  # Reset flag after processing
 
@@ -46,14 +46,16 @@ class BTDrive:
         print
 
     def calculate_velocities(self, x, y):
-        l_multiplier = -(1 - x)
-        r_multiplier = 1 - x
-        if x > 0:
-            l_multiplier = 1 + x
-            r_multiplier = -(1 + x)
-
-        left_velocity = y * l_multiplier * self.max_velocity
-        right_velocity = y * r_multiplier * self.max_velocity
+        left_velocity = ((-y) + 0.5 * x) * self.max_velocity
+        right_velocity = ((-y) - 0.5 * x) * self.max_velocity
+        if left_velocity > self.max_velocity:
+            left_velocity = self.max_velocity
+        if left_velocity < -self.max_velocity:
+            left_velocity = -self.max_velocity
+        if right_velocity > self.max_velocity:
+            right_velocity = self.max_velocity
+        if right_velocity < -self.max_velocity:
+            right_velocity = -self.max_velocity
         return left_velocity, right_velocity
         
 

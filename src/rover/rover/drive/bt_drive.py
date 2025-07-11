@@ -31,7 +31,7 @@ class BTDrive:
             velocities = [self.right_velocity] * 3 + [self.left_velocity] * 3
             parsed_data = self.serial_conn.spin_once()
             print(f"Parsed data: {parsed_data}")
-            self.serial_conn.send_velocity_set([100.0, 200.0, 100.0, 100.0, 100.0, 100.0])
+            self.serial_conn.send_velocity_set([0.0, 0.0, 100.0, 100.0, 100.0, 100.0])
             # self.serial_conn.send_velocity_set(velocities)
             print(f"Setting velocities: Left: {self.left_velocity}, Right: {self.right_velocity}")
             self.ls_received = False  # Reset flag after processing

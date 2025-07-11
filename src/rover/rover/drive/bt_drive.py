@@ -27,7 +27,9 @@ class BTDrive:
             left_velocity, right_velocity = self.calculate_velocities(x, y)
             self.left_velocity = left_velocity
             self.right_velocity = right_velocity
-            print (f"Left Velocity: {self.left_velocity}, Right Velocity: {self.right_velocity}")
+            velocities = [self.right_velocity] * 3 + [self.left_velocity] * 3
+            self.serial_conn.send_velocity_set(velocities)
+            print(f"Setting velocities: Left: {self.left_velocity}, Right: {self.right_velocity}")
             self.ls_received = False  # Reset flag after processing
 
     def lsx_callback(self, value):

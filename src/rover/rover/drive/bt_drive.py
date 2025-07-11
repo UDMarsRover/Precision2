@@ -3,7 +3,7 @@ from UDMRTMotorSerial import UDMRTMotorSerial
 import threading
 from serial.serialutil import SerialException
 class BTDrive:
-    def __init__(self, serial_port='/dev/ttyUSB0'):
+    def __init__(self, serial_port='/dev/serial/by-id/usb-Adafruit_Feather_M4_CAN_CC17951D534837434E202020FF0F291F-if00'):
         self.serial_conn = UDMRTMotorSerial(port=serial_port, baudrate=115200)
         if not self.serial_conn.connect():
             raise SerialException("Could not connect to motor controller")

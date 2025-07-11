@@ -57,3 +57,14 @@ class BTDrive:
 
     def stop(self):
         self.motor_controller.kill()
+
+if __name__ == "__main__":
+    try:
+        bt_drive = BTDrive()
+        bt_drive.start()
+    except KeyboardInterrupt:
+        print("Exiting...")
+        bt_drive.stop()
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        bt_drive.stop()

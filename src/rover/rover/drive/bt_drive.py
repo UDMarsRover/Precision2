@@ -17,6 +17,8 @@ class BTDrive:
         self.max_velocity = 300
         self.ls_received = False
 
+        self.controller.run()
+
     def lsy_callback(self, value):
         # Only calculate velocities if lsc_callback has been called with a new value
         if self.ls_received:

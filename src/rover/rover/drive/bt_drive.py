@@ -49,15 +49,6 @@ class BTDrive:
         return left_velocity, right_velocity
         
 
-
-
-    def start(self):
-        self.motor_controller.start_listening()
-        self.motor_controller.loop_input()
-
-    def stop(self):
-        self.motor_controller.kill()
-
 if __name__ == "__main__":
     try:
         bt_drive = BTDrive()

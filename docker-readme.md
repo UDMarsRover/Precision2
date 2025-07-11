@@ -1,3 +1,6 @@
+Pull the ROS Humble image: 
+docker pull osrf/ros:humble-desktop
+
 To run docker container, first build:
 docker build -t humble .
 

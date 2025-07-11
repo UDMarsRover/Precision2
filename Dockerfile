@@ -1,5 +1,5 @@
 # Use the official ROS2 Humble base image
-FROM ros:humble
+FROM osrf/ros:humble-desktop
 COPY requirements.txt /requirements.txt
 # Install necessary packages
 RUN apt-get update && apt-get install -y \
@@ -22,7 +22,6 @@ WORKDIR /workspace
 
 # Build the workspace
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build"
-
 
 # Run your application
 

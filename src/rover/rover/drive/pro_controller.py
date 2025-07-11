@@ -1,4 +1,5 @@
 import pygame
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 class NintendoProController:
     def __init__(self):

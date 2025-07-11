@@ -1,33 +1,59 @@
-import asyncio
-from bleak import BleakScanner
+from pro_controller import NintendoProController
+from UDMRTMotorSerial import UDMRTMotorSerial
+import threading
+from serial.serialutil import SerialException
+class BTDrive:
+    def __init__(self, serial_port='/dev/ttyUSB0'):
+        self.serial_conn = UDMRTMotorSerial(port=serial_port, baudrate=115200)
+        if not self.serial_conn.connect():
+            raise SerialException("Could not connect to motor controller")
+        
+        self.controller = NintendoProController()
+        self.controller.add_analog_callback("LS_x", self.lsx_callback)
+        self.controller.add_analog_callback("LS_y", self.lsy_callback)
+        
+        self.right_velocity = 0.0
+        self.left_velocity = 0.0
+        self.max_velocity = 300
+        self.ls_received = False
 
-async def find_pro_controller_info():
-    print("Scanning for Bluetooth devices...")
-    devices = await BleakScanner.discover(timeout=10.0) # Scan for 10 seconds
+    def lsy_callback(self, value):
+        # Only calculate velocities if lsc_callback has been called with a new value
+        if self.ls_received:
+            x = getattr(self, 'lsx_value', 0.0)
+            y = value
+            left_velocity, right_velocity = self.calculate_velocities(x, y)
+            self.left_velocity = left_velocity
+            self.right_velocity = right_velocity
+            print (f"Left Velocity: {self.left_velocity}, Right Velocity: {self.right_velocity}")
+            self.ls_received = False  # Reset flag after processing
 
-    pro_controller_info = None
-    for device in devices:
-        print(f"Found device: {device.name} ({device.address})")
-        # The name is usually "Pro Controller"
-        if device.name and "Pro Controller" in device.name:
-            print(f"Found potential Pro Controller: {device.name} ({device.address})")
-            pro_controller_info = device
-            break
+    def lsx_callback(self, value):
+        # Store the latest x value for use in lsy_callback
+        self.ls_received = True
+        self.lsx_value = value
+        
+    def a_callback(self, value):
+        parsed_data = self.serial_conn.spin_once()
+        print
 
-    if pro_controller_info:
-        print(f"\nPro Controller found: Name='{pro_controller_info.name}', Address='{pro_controller_info.address}'")
-        print("Use this address for connecting.")
-        return pro_controller_info.address
-    else:
-        print("Nintendo Switch Pro Controller not found during scan.")
-        return None
+    def calculate_velocities(self, x, y):
+        l_multiplier = -(1 - x)
+        r_multiplier = 1 - x
+        if x > 0:
+            l_multiplier = 1 + x
+            r_multiplier = -(1 + x)
 
-async def main_discovery():
-    pro_controller_id = await find_pro_controller_info()
-    if pro_controller_id:
-        print(f"You can now try connecting to: {pro_controller_id}")
-        # You can then pass this ID to your connect_by_mac_address function
-        # await connect_by_mac_address(pro_controller_id) # Call your connection function
+        left_velocity = y * l_multiplier * self.max_velocity
+        right_velocity = y * r_multiplier * self.max_velocity
+        return left_velocity, right_velocity
+        
 
-if __name__ == "__main__":
-    asyncio.run(main_discovery())
+
+
+    def start(self):
+        self.motor_controller.start_listening()
+        self.motor_controller.loop_input()
+
+    def stop(self):
+        self.motor_controller.kill()

@@ -86,7 +86,7 @@ class NintendoProController:
         try:
             while True:
                 self.run_callbacks()
-                pygame.time.wait(10)  # Poll every 10ms
+                pygame.time.wait(50)  # Poll every 50ms
         except KeyboardInterrupt:
             print("Exiting...")
         finally:

@@ -45,7 +45,7 @@ class UDMRTMotorSerial:
         return True
     
     @staticmethod
-    def construct_velocity_set_packet(velocities: pipndarray) -> bytearray:
+    def construct_velocity_set_packet(velocities: np.ndarray) -> bytearray:
         if len(velocities) != 6:
             raise ValueError("Velocities array must contain exactly 6 floats")
         packet = bytearray()

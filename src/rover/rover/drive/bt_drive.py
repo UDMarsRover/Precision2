@@ -28,8 +28,8 @@ class BTDrive:
             self.left_velocity = left_velocity
             self.right_velocity = right_velocity
             velocities = [self.right_velocity] * 3 + [self.left_velocity] * 3
-            parsed_data = self.serial_conn.spin_once()
-            print(f"Parsed data: {parsed_data}")
+            # parsed_data = self.serial_conn.spin_once()
+            # print(f"Parsed data: {parsed_data}")
             # self.serial_conn.send_velocity_set([0.0, 0.0, 100.0, 100.0, 100.0, 100.0])
             self.serial_conn.send_velocity_set(velocities)
             print(f"Setting velocities: Left: {self.left_velocity}, Right: {self.right_velocity}")
@@ -42,7 +42,6 @@ class BTDrive:
         
     def a_callback(self, value):
         parsed_data = self.serial_conn.spin_once()
-        print
 
     def calculate_velocities(self, x, y):
         left_velocity = ((-y) + 0.5 * x) * self.max_velocity

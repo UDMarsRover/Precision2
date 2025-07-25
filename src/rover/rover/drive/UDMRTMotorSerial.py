@@ -45,7 +45,7 @@ class UDMRTMotorSerial:
         return True
     
     @staticmethod
-    def construct_velocity_set_packet(velocities: np.ndarray) -> bytearray:
+    def construct_velocity_set_packet(velocities: pipndarray) -> bytearray:
         if len(velocities) != 6:
             raise ValueError("Velocities array must contain exactly 6 floats")
         packet = bytearray()
@@ -138,7 +138,6 @@ class UDMRTMotorSerial:
             
             # print(f"Voltage fixed point: {voltage_fixed_point:04X}")
             current_fixed_point = (voltage_current_fixed_point[2] << 4) | (voltage_current_fixed_point[1] >> 4)
-            print(f"Current fixed point: {current_fixed_point:04X}")
             voltage = voltage_fixed_point * 32.0 / 4095
             voltage -= 0.02 * voltage
             

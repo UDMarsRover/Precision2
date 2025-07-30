@@ -3,7 +3,7 @@ from time import sleep
 
 # Define the GPIO pin connected to the servo's signal wire
 # GPIO 12 is physical pin 32 on the Raspberry Pi's 40-pin header
-SERVO_PIN = 13
+SERVO_PIN = 12
 
 # Initialize the servo object
 # The 'min_pulse_width' and 'max_pulse_width' define the range of the servo's movement.

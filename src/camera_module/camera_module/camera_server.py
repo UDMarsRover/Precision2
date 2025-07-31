@@ -262,7 +262,8 @@ def root():
     </html>
     """
 
-if __name__ == '__main__':
+
+def main():
     try:
         print("Starting Flask application...")
         app.run(host='0.0.0.0', port=5000, debug=False)
@@ -284,3 +285,6 @@ if __name__ == '__main__':
                     print(f"Error stopping camera {cam_id}: {e}")
                 picam2_instances[cam_id] = None # Clear the instance
         print("All cameras stopped. Application exiting.")
+
+if __name__ == '__main__':
+    main()

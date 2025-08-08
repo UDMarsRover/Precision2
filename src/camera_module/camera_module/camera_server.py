@@ -139,7 +139,7 @@ def generate_frames(camera_id):
                 continue
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-        time.sleep(1.0 / 30.0)
+        time.sleep(1.0 /15.0)
 
 @app.route('/stream/<int:camera_id>')
 def stream_feed(camera_id):

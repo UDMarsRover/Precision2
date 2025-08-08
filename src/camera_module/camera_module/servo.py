@@ -4,8 +4,9 @@ from std_msgs.msg import Float32
 import lgpio
 
 SERVO_PIN = 12
-MIN_PULSE = 500
-MAX_PULSE = 2500
+SERVO_FREQ = 50  # Standard servo frequency in Hz
+MIN_PULSE = 500  # Minimum pulse width in microseconds
+MAX_PULSE = 2500 # Maximum pulse width in microseconds
 
 class ServoNode(Node):
     def __init__(self):
@@ -15,7 +16,10 @@ class ServoNode(Node):
             self.get_logger().error("Could not open GPIO chip.")
             raise Exception("GPIO chip not opened")
 
+        # Claim the output pin and start PWM with an initial pulse width
         lgpio.gpio_claim_output(self.h, SERVO_PIN)
+        self.set_servo_pulsewidth(1500) # 1500us is center
+
         self.last_position = None
         self.subscription = self.create_subscription(
             Float32,
@@ -24,21 +28,26 @@ class ServoNode(Node):
             10
         )
         self.get_logger().info(f"Servo node started. Listening on 'servo_position' topic.")
-        self.set_servo_pulsewidth(1500) # 1500us is center
 
     def set_servo_pulsewidth(self, pulse_width):
-        # lgpio uses gpio_send_pulse to send a pulse, but for servos we use gpio_servo
-        lgpio.gpio_servo(self.h, SERVO_PIN, pulse_width)
+        """Sets the servo pulse width using lgpio's PWM function."""
+        # The lgpio.gpio_pwm function takes frequency and duty cycle in microseconds
+        lgpio.gpio_pwm(self.h, SERVO_PIN, SERVO_FREQ, pulse_width)
 
     def listener_callback(self, msg):
+        # Map the ROS position (-1.0 to 1.0) to pulse width (500 to 2500)
         pulse_width = int(((msg.data + 1) / 2) * (MAX_PULSE - MIN_PULSE) + MIN_PULSE)
+        
+        # Only update if position changes significantly to reduce calls
         if self.last_position is None or abs(pulse_width - self.last_position) > 10:
             self.set_servo_pulsewidth(pulse_width)
             self.last_position = pulse_width
             self.get_logger().info(f"Set servo to pulse width: {pulse_width}us")
 
     def destroy_node(self):
-        self.set_servo_pulsewidth(0) # Turn off PWM
+        # Stop PWM by setting the pulse width to 0
+        self.set_servo_pulsewidth(0)
+        # Release the GPIO chip
         lgpio.gpiochip_close(self.h)
         super().destroy_node()
 

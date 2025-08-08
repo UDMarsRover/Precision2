@@ -7,7 +7,7 @@ RUN apt-get update && \
 
 # Copy camera_module package
 WORKDIR /workspace
-COPY ../ /workspace/camera_module
+COPY ../../../../ /workspace/camera_module
 
 # Install Python dependencies
 RUN pip3 install -r /workspace/camera_module/requirements.txt || true

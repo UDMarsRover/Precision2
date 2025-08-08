@@ -51,7 +51,7 @@ class DynamixelMotorNode(Node):
         It processes incoming Float32 messages to control the motor.
         """
         # Add the new data to the smoothing window
-        self.position_history.append(msg.data)
+        self.position_history.append(-msg.data)
 
         # Calculate the average of the values in the window for smoothing
         smoothed_data = sum(self.position_history) / len(self.position_history)

@@ -64,7 +64,7 @@ class BTDrive(Node):
 
     def calculate_velocities(self, x, y):
         self.get_logger().info(f"Calculating velocities: LS_x={x}, LS_y={y}")
-        rclpy.spin_once(self)
+        # rclpy.spin_once(self)
         left_velocity = ((-y) + 0.5 * x) * self.max_velocity
         right_velocity = ((-y) - 0.5 * x) * self.max_velocity
         if left_velocity > self.max_velocity:

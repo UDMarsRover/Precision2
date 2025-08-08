@@ -22,16 +22,8 @@ class BTDrive(Node):
         
         # Serial connection
         self.serial_conn = UDMRTMotorSerial(port=serial_port, baudrate=115200)
-
-        controller_connected = False
-        while not controller_connected:
-            try:
-                controller_connected = self.serial_conn.connect()
-                if controller_connected:
-                    self.get_logger().info("Connected to motor controller")
-            except SerialException as e:
-                self.get_logger().error(f"Failed to connect to motor controller: {e}")
-                time.sleep(3)
+        if not self.serial_conn.connect():
+            raise SerialException("Could not connect to motor controller")
         
         # Nintendo Pro Controller setup
         self.controller = NintendoProController()

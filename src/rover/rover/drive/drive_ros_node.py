@@ -25,6 +25,7 @@ class DriveNode(Node):
         if self.serial_conn:
             velocities = [msg.data[1]] * 3 + [msg.data[0]] * 3
             self.serial_conn.send_velocity_set(velocities)
+            self.get_logger().info(f"Set velocities: Left: {msg.data[0]}, Right: {msg.data[1]}")
         
 def main(args=None):
     rclpy.init(args=args)

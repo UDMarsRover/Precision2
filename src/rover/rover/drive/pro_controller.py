@@ -34,10 +34,13 @@ class NintendoProController:
         self.callbacks = {}
         pygame.init()
         pygame.joystick.init()
-
-        if pygame.joystick.get_count() == 0:
-            print("No joystick detected. Please connect your Nintendo Pro Controller via Bluetooth.")
-            exit(1)
+        # wait for the joystick to be connected
+        while pygame.joystick.get_count() == 0:
+            print("Waiting for Nintendo Pro Controller to connect...")
+            pygame.time.wait(3000)
+        # if pygame.joystick.get_count() == 0:
+        #     print("No joystick detected. Please connect your Nintendo Pro Controller via Bluetooth.")
+        #     exit(1)
 
         self.joystick = pygame.joystick.Joystick(0)
         self.joystick.init()

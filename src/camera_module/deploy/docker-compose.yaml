@@ -11,7 +11,7 @@ services:
       - /dev/gpiomem:/dev/gpiomem
       - /dev/gpiochip0:/dev/gpiochip0
     environment:
-      - ROS_DOMAIN_ID=0
+      GPIOZERO_PIN_FACTORY: pigpio
     restart: unless-stopped
     network_mode: host
     ipc: host

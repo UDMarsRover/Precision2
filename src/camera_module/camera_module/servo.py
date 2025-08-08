@@ -1,40 +1,42 @@
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import Float32
 from gpiozero import Servo
-from time import sleep
 
-# Define the GPIO pin connected to the servo's signal wire
-# GPIO 12 is physical pin 32 on the Raspberry Pi's 40-pin header
 SERVO_PIN = 12
 
-# Initialize the servo object
-# The 'min_pulse_width' and 'max_pulse_width' define the range of the servo's movement.
-# Standard values are 1ms to 2ms (1000us to 2000us).
-# gpiozero's Servo class maps -1 to min_pulse_width and 1 to max_pulse_width.
-# You might need to adjust these values slightly for your specific servo
-# to get its full range without straining it.
-# For example, if your servo overshoots or doesn't reach the full extent,
-# you can adjust the min_pulse_width and max_pulse_width parameters.
-# servo = Servo(SERVO_PIN, min_pulse_width=0.5/1000, max_pulse_width=2.5/1000)
-# The default values are usually good for a start:
-servo = Servo(SERVO_PIN)
+class ServoNode(Node):
+    def __init__(self):
+        super().__init__('servo_node')
+        self.servo = Servo(SERVO_PIN)
+        self.subscription = self.create_subscription(
+            Float32,
+            'servo_position',
+            self.listener_callback,
+            10
+        )
+        self.get_logger().info(f"Servo node started. Listening on 'servo_position' topic.")
 
-print(f"Servo connected to GPIO {SERVO_PIN}. Moving back and forth every 2 seconds.")
-print("Press Ctrl+C to stop the script.")
+    def listener_callback(self, msg):
+        # Clamp input to [-1, 1]
+        position = max(-1.0, min(1.0, msg.data))
+        self.servo.value = position
+        self.get_logger().info(f"Set servo to position: {position}")
 
-try:
-    while True:
-        # Move servo to one extreme (e.g., -90 degrees)
-        print("Moving servo to min position (-1)...")
-        servo.min()
-        sleep(2)  # Wait for 2 seconds
+    def destroy_node(self):
+        self.servo.close()
+        super().destroy_node()
 
-        # Move servo to the other extreme (e.g., +90 degrees)
-        print("Moving servo to max position (1)...")
-        servo.max()
-        sleep(2)  # Wait for 2 seconds
+def main(args=None):
+    rclpy.init(args=args)
+    node = ServoNode()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
-except KeyboardInterrupt:
-    # This block is executed when Ctrl+C is pressed
-    print("\nStopping servo and cleaning up GPIO...")
-    servo.close() # Release the GPIO pin
-    print("Script terminated.")
-
+if __name__ == '__main__':
+    main()

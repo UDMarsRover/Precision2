@@ -27,6 +27,10 @@ RPI_CAM_3_WIDE_RES = (4608, 2592)
 # Pi High-Quality (HQ) Camera (Approximate full resolution)
 RPI_HQ_CAM_RES = (4056, 3040)
 
+# New scale factor to reduce the input image size for efficiency.
+# For example, 0.5 will use a capture resolution that is half the width and half the height.
+INPUT_RESOLUTION_SCALE = 0.5
+
 # Default output settings for each camera
 DEFAULT_OUTPUT_SETTINGS = {
     "resolution": "720p",
@@ -66,12 +70,19 @@ def capture_and_process_frames(camera_id):
     try:
         # Determine the correct sensor resolution based on camera ID
         if camera_id == 0:
-            sensor_capture_resolution = RPI_CAM_3_WIDE_RES
+            base_resolution = RPI_CAM_3_WIDE_RES
+            camera_name = "Pi Cam 3 Wide"
         elif camera_id == 1:
-            sensor_capture_resolution = RPI_HQ_CAM_RES
+            base_resolution = RPI_HQ_CAM_RES
+            camera_name = "Pi HQ Camera"
         else:
             print(f"Unknown camera ID {camera_id}. Exiting thread.")
             return
+
+        # Apply the scaling factor to the base resolution for efficiency
+        scaled_width = int(base_resolution[0] * INPUT_RESOLUTION_SCALE)
+        scaled_height = int(base_resolution[1] * INPUT_RESOLUTION_SCALE)
+        sensor_capture_resolution = (scaled_width, scaled_height)
 
         # Initialize and configure the camera instance once
         picam2 = Picamera2(camera_id)
@@ -115,12 +126,11 @@ def capture_and_process_frames(camera_id):
             # --- Resize to desired output resolution using cv2 ---
             processed_frame = cv2.resize(cropped_frame, (output_width, output_height), interpolation=cv2.INTER_AREA)
 
+            # --- Rotate the frame by 90 degrees ---
+            processed_frame = cv2.rotate(processed_frame, cv2.ROTATE_90_CLOCKWISE)
+
             # Add an overlay for information
-            if camera_id == 0:
-                camera_id_str = "Pi Cam 3 Wide"
-            else:
-                camera_id_str = "Pi HQ Camera"
-            overlay_text = f"{camera_id_str} - Zoom: {zoom_level}x - Output: {output_width}x{output_height}"
+            overlay_text = f"{camera_name} - Zoom: {zoom_level}x - Output: {output_height}x{output_width}"
             cv2.putText(processed_frame, overlay_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1, cv2.LINE_AA)
 
             # Store the processed frame in the global state

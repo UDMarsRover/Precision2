@@ -28,7 +28,7 @@ class BTDrive(Node):
         self.ls_received = False
 
         self.lrc_active = False
-
+        self.get_logger().info("Running controller...")
         self.controller.run()
 
     def control_callback(self, msg):
@@ -63,6 +63,7 @@ class BTDrive(Node):
         parsed_data = self.serial_conn.spin_once()
 
     def calculate_velocities(self, x, y):
+        self.get_logger().info(f"Calculating velocities: LS_x={x}, LS_y={y}")
         rclpy.spin_once(self)
         left_velocity = ((-y) + 0.5 * x) * self.max_velocity
         right_velocity = ((-y) - 0.5 * x) * self.max_velocity

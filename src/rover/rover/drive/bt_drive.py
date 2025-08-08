@@ -3,84 +3,111 @@ from rover.drive.UDMRTMotorSerial import UDMRTMotorSerial
 from serial.serialutil import SerialException
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import SingleThreadedExecutor
 from std_msgs.msg import Float32MultiArray
+import time
+
 class BTDrive(Node):
     def __init__(self, serial_port='/dev/serial/by-id/usb-Adafruit_Feather_M4_CAN_CC17951D534837434E202020FF0F291F-if00'):
         super().__init__('bt_drive_node')
         self.get_logger().info("BTDrive node initialized")
+
+        # ROS 2 subscription
         self.controller_sub = self.create_subscription(
             Float32MultiArray,
             'drive_velocities',
             self.control_callback,
             10
         )
+        
+        # Serial connection
         self.serial_conn = UDMRTMotorSerial(port=serial_port, baudrate=115200)
         if not self.serial_conn.connect():
             raise SerialException("Could not connect to motor controller")
         
+        # Nintendo Pro Controller setup
         self.controller = NintendoProController()
         self.controller.add_analog_callback("LS_x", self.lsx_callback)
         self.controller.add_analog_callback("LS_y", self.lsy_callback)
+        self.controller.add_analog_callback("A", self.a_callback)
         
         self.right_velocity = 0.0
         self.left_velocity = 0.0
         self.max_velocity = 300
         self.ls_received = False
-
         self.lrc_active = False
-        self.get_logger().info("Running controller...")
-        self.controller.run()
+
+        self.get_logger().info("Controller setup complete.")
 
     def control_callback(self, msg):
         self.get_logger().info("LRC active, shutting down bluetooth controller")
         self.lrc_active = True
-        self.controller.kill()
-
+        # NOTE: The controller will be killed in the main loop's shutdown logic.
+        # This callback sets a flag to indicate the main loop should stop using the controller.
 
     def lsy_callback(self, value):
-        # Only calculate velocities if lsc_callback has been called with a new value
         if self.ls_received:
             x = getattr(self, 'lsx_value', 0.0)
             y = value
-            # print(f"LS_y value: {y}, LS_x value: {x}")
             left_velocity, right_velocity = self.calculate_velocities(x, y)
             self.left_velocity = left_velocity
             self.right_velocity = right_velocity
             velocities = [self.right_velocity] * 3 + [self.left_velocity] * 3
-            # parsed_data = self.serial_conn.spin_once()
-            # print(f"Parsed data: {parsed_data}")
-            # self.serial_conn.send_velocity_set([0.0, 0.0, 100.0, 100.0, 100.0, 100.0])
             self.serial_conn.send_velocity_set(velocities)
             print(f"Setting velocities: Left: {self.left_velocity}, Right: {self.right_velocity}")
-            self.ls_received = False  # Reset flag after processing
+            self.ls_received = False
 
     def lsx_callback(self, value):
-        # Store the latest x value for use in lsy_callback
         self.ls_received = True
         self.lsx_value = value
         
     def a_callback(self, value):
         parsed_data = self.serial_conn.spin_once()
+        print(f"A button pressed, serial data: {parsed_data}")
 
     def calculate_velocities(self, x, y):
         self.get_logger().info(f"Calculating velocities: LS_x={x}, LS_y={y}")
-        # rclpy.spin_once(self)
         left_velocity = ((-y) + 0.5 * x) * self.max_velocity
         right_velocity = ((-y) - 0.5 * x) * self.max_velocity
-        if left_velocity > self.max_velocity:
-            left_velocity = self.max_velocity
-        if left_velocity < -self.max_velocity:
-            left_velocity = -self.max_velocity
-        if right_velocity > self.max_velocity:
-            right_velocity = self.max_velocity
-        if right_velocity < -self.max_velocity:
-            right_velocity = -self.max_velocity
+        left_velocity = max(min(left_velocity, self.max_velocity), -self.max_velocity)
+        right_velocity = max(min(right_velocity, self.max_velocity), -self.max_velocity)
         return left_velocity, right_velocity
-        
 
+# Main function to run the node
 def main(args=None):
     rclpy.init(args=args)
     bt_drive = BTDrive()
+    
+    executor = SingleThreadedExecutor()
+    executor.add_node(bt_drive)
+
+    try:
+        bt_drive.get_logger().info("Starting combined event loop...")
+        while rclpy.ok():
+            # Process ROS 2 events
+            executor.spin_once(timeout_sec=0)
+            
+            # Check for controller events and process them
+            if not bt_drive.lrc_active:
+                # You'll need a non-blocking method from your controller library.
+                # Assuming `controller.spin_once()` or similar exists.
+                # If not, you might need to find an equivalent to process events.
+                bt_drive.controller.spin_once()
+            else:
+                # If LRC is active, we can break out of the controller processing.
+                break
+
+            time.sleep(0.01) # Small sleep to prevent busy-waiting
+            
+    except KeyboardInterrupt:
+        bt_drive.get_logger().info("Keyboard interrupt received, shutting down.")
+    finally:
+        bt_drive.get_logger().info("Shutting down...")
+        if not bt_drive.lrc_active:
+            bt_drive.controller.kill()
+        bt_drive.serial_conn.disconnect()
+        bt_drive.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

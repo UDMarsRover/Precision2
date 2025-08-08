@@ -53,7 +53,6 @@ class BTDrive(Node):
             self.right_velocity = right_velocity
             velocities = [self.right_velocity] * 3 + [self.left_velocity] * 3
             self.serial_conn.send_velocity_set(velocities)
-            print(f"Setting velocities: Left: {self.left_velocity}, Right: {self.right_velocity}")
             self.ls_received = False
 
     def lsx_callback(self, value):
@@ -61,7 +60,6 @@ class BTDrive(Node):
         self.lsx_value = value
 
     def calculate_velocities(self, x, y):
-        self.get_logger().info(f"Calculating velocities: LS_x={x}, LS_y={y}")
         left_velocity = ((-y) + 0.5 * x) * self.max_velocity
         right_velocity = ((-y) - 0.5 * x) * self.max_velocity
         left_velocity = max(min(left_velocity, self.max_velocity), -self.max_velocity)

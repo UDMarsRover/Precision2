@@ -1,5 +1,3 @@
-# optimized_server.py
-
 from picamera2 import Picamera2
 import cv2
 from flask import Flask, Response, request
@@ -98,16 +96,30 @@ def capture_and_process_frames(camera_id):
             
             output_width, output_height = OUTPUT_RESOLUTIONS[output_res_str]
 
-            # --- Apply Zoom (Cropping) ---
-            cropped_width = int(sensor_width / zoom_level)
-            cropped_height = int(sensor_height / zoom_level)
+            # --- Aspect Ratio-Correct Cropping for Zoom ---
+            # Calculate the aspect ratio of the desired output.
+            target_aspect_ratio = output_width / output_height
             
+            # Determine the cropped area dimensions based on the sensor and target aspect ratio.
+            sensor_aspect_ratio = sensor_width / sensor_height
+            
+            if sensor_aspect_ratio > target_aspect_ratio:
+                # Sensor is wider than the target, so crop the width.
+                cropped_height = int(sensor_height / zoom_level)
+                cropped_width = int(cropped_height * target_aspect_ratio)
+            else:
+                # Sensor is taller than the target, so crop the height.
+                cropped_width = int(sensor_width / zoom_level)
+                cropped_height = int(cropped_width / target_aspect_ratio)
+
+            # Calculate the top-left corner of the crop to center it on the sensor.
             start_x = (sensor_width - cropped_width) // 2
             start_y = (sensor_height - cropped_height) // 2
-
+            
+            # Perform the crop.
             cropped_frame = full_frame[start_y:start_y + cropped_height,
                                        start_x:start_x + cropped_width]
-
+            
             # --- Resize and Rotate ---
             processed_frame = cv2.resize(cropped_frame, (output_width, output_height), interpolation=cv2.INTER_AREA)
             processed_frame = cv2.rotate(processed_frame, cv2.ROTATE_90_CLOCKWISE)

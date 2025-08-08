@@ -33,6 +33,7 @@ DEFAULT_OUTPUT_SETTINGS = {
 }
 # Global state for each camera, including the latest frame and settings
 # Initialize with a blank frame to prevent the generator from failing on startup
+# The dimensions are swapped to account for the 90-degree rotation.
 initial_output_res = OUTPUT_RESOLUTIONS[DEFAULT_OUTPUT_SETTINGS["resolution"]]
 initial_frame = np.zeros((initial_output_res[1], initial_output_res[0], 3), dtype=np.uint8)
 
@@ -105,13 +106,16 @@ def capture_and_process_frames(camera_id):
             # --- Resize to desired output resolution using cv2 ---
             processed_frame = cv2.resize(cropped_frame, (output_width, output_height), interpolation=cv2.INTER_AREA)
 
+            # --- Rotate the frame by 90 degrees ---
+            processed_frame = cv2.rotate(processed_frame, cv2.ROTATE_90_CLOCKWISE)
+
             # Add an overlay for information
-            if camera_id == 0:
-                camera_id_str = "IR Camera"
-            else:
-                camera_id_str = "Zoom Camera"
-            overlay_text = f"{camera_id_str} - Zoom: {zoom_level}x - Output: {output_width}x{output_height}"
-            cv2.putText(processed_frame, overlay_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1, cv2.LINE_AA)
+            # if camera_id == 0:
+            #     camera_id_str = "IR Camera"
+            # else:
+            #     camera_id_str = "Zoom Camera"
+            # overlay_text = f"{camera_id_str} - Zoom: {zoom_level}x - Output: {output_height}x{output_width}"
+            # cv2.putText(processed_frame, overlay_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1, cv2.LINE_AA)
 
             # Store the processed frame in the global state
             with latest_camera_data[camera_id]["lock"]:
@@ -145,7 +149,7 @@ def generate_frames(camera_id):
 
         if frame is not None:
             # Encode the frame as JPEG
-            ret, buffer = cv2.imencode('.jpeg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
+            ret, buffer = cv2.imencode('.jpeg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 60])
             if not ret:
                 continue
             yield (b'--frame\r\n'

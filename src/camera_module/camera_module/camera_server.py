@@ -21,10 +21,11 @@ OUTPUT_RESOLUTIONS = {
 # Define supported zoom levels (multipliers)
 ZOOM_LEVELS = [1.0, 1.5, 2.0, 3.0, 4.0]
 
-# Capture resolution from the sensor. Use a high-enough resolution for effective zooming.
-# The Pi Camera Module 3's full resolution is 4608x2592, but a 16:9 aspect ratio like
-# 2304x1296 is often a good compromise for video streams.
-SENSOR_CAPTURE_RESOLUTION = (2304, 1296)
+# --- SENSOR RESOLUTIONS FOR SPECIFIC CAMERAS ---
+# Pi Camera Module 3 Wide (Approximate full resolution)
+RPI_CAM_3_WIDE_RES = (4608, 2592)
+# Pi High-Quality (HQ) Camera (Approximate full resolution)
+RPI_HQ_CAM_RES = (4056, 3040)
 
 # Default output settings for each camera
 DEFAULT_OUTPUT_SETTINGS = {
@@ -33,7 +34,6 @@ DEFAULT_OUTPUT_SETTINGS = {
 }
 # Global state for each camera, including the latest frame and settings
 # Initialize with a blank frame to prevent the generator from failing on startup
-# The dimensions are swapped to account for the 90-degree rotation.
 initial_output_res = OUTPUT_RESOLUTIONS[DEFAULT_OUTPUT_SETTINGS["resolution"]]
 initial_frame = np.zeros((initial_output_res[1], initial_output_res[0], 3), dtype=np.uint8)
 
@@ -64,10 +64,19 @@ def capture_and_process_frames(camera_id):
     print(f"Starting capture thread for camera {camera_id}...")
     picam2 = None
     try:
+        # Determine the correct sensor resolution based on camera ID
+        if camera_id == 0:
+            sensor_capture_resolution = RPI_CAM_3_WIDE_RES
+        elif camera_id == 1:
+            sensor_capture_resolution = RPI_HQ_CAM_RES
+        else:
+            print(f"Unknown camera ID {camera_id}. Exiting thread.")
+            return
+
         # Initialize and configure the camera instance once
         picam2 = Picamera2(camera_id)
         config = picam2.create_preview_configuration(
-            main={"size": SENSOR_CAPTURE_RESOLUTION, "format": "XRGB8888"}
+            main={"size": sensor_capture_resolution, "format": "XRGB8888"}
         )
         picam2.configure(config)
         picam2.start()
@@ -75,7 +84,7 @@ def capture_and_process_frames(camera_id):
         # Store the instance globally for clean shutdown
         latest_camera_data[camera_id]["picam2"] = picam2
         
-        sensor_width, sensor_height = SENSOR_CAPTURE_RESOLUTION
+        sensor_width, sensor_height = sensor_capture_resolution
 
         print(f"Camera {camera_id} sensor is configured to {sensor_width}x{sensor_height}. Entering capture loop.")
 
@@ -106,16 +115,13 @@ def capture_and_process_frames(camera_id):
             # --- Resize to desired output resolution using cv2 ---
             processed_frame = cv2.resize(cropped_frame, (output_width, output_height), interpolation=cv2.INTER_AREA)
 
-            # --- Rotate the frame by 90 degrees ---
-            processed_frame = cv2.rotate(processed_frame, cv2.ROTATE_90_CLOCKWISE)
-
             # Add an overlay for information
-            # if camera_id == 0:
-            #     camera_id_str = "IR Camera"
-            # else:
-            #     camera_id_str = "Zoom Camera"
-            # overlay_text = f"{camera_id_str} - Zoom: {zoom_level}x - Output: {output_height}x{output_width}"
-            # cv2.putText(processed_frame, overlay_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1, cv2.LINE_AA)
+            if camera_id == 0:
+                camera_id_str = "Pi Cam 3 Wide"
+            else:
+                camera_id_str = "Pi HQ Camera"
+            overlay_text = f"{camera_id_str} - Zoom: {zoom_level}x - Output: {output_width}x{output_height}"
+            cv2.putText(processed_frame, overlay_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1, cv2.LINE_AA)
 
             # Store the processed frame in the global state
             with latest_camera_data[camera_id]["lock"]:
@@ -149,7 +155,7 @@ def generate_frames(camera_id):
 
         if frame is not None:
             # Encode the frame as JPEG
-            ret, buffer = cv2.imencode('.jpeg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 60])
+            ret, buffer = cv2.imencode('.jpeg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
             if not ret:
                 continue
             yield (b'--frame\r\n'
@@ -213,8 +219,8 @@ def root():
         <p>Access camera feeds directly. The camera streams are now processed on the CPU for compatibility.</p>
         <p>Available resolutions: {res_list}</p>
         <p>Available zoom levels: {zoom_list}</p>
-        <p>Example for Camera 0: <a href="/stream/0?resolution=720p&zoom=1.0">/stream/0?resolution=720p&zoom=1.0</a></p>
-        <p>Example for Camera 1: <a href="/stream/1?resolution=1080p&zoom=2.0">/stream/1?resolution=1080p&zoom=2.0</a></p>
+        <p>Example for Camera 0 (Pi Cam 3 Wide): <a href="/stream/0?resolution=720p&zoom=1.0">/stream/0?resolution=720p&zoom=1.0</a></p>
+        <p>Example for Camera 1 (Pi HQ Camera): <a href="/stream/1?resolution=1080p&zoom=2.0">/stream/1?resolution=1080p&zoom=2.0</a></p>
     </body>
     </html>
     """

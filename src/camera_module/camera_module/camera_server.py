@@ -115,7 +115,7 @@ def capture_and_process_frames(camera_id):
             with latest_camera_data[camera_id]["lock"]:
                 latest_camera_data[camera_id]["frame"] = processed_frame
             
-            time.sleep(0.01)
+            time.sleep(0.033)
 
     except Exception as e:
         print(f"Capture thread for camera {camera_id} encountered a fatal error: {e}")

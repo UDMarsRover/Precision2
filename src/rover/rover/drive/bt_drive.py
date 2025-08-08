@@ -35,7 +35,7 @@ class BTDrive(Node):
             except Exception as e:
                 self.get_logger().info(f"Failed to initialize controller: {e}")
                 self.controller = None
-                time.sleep(3)
+                raise AssertionError("No joystick connected") from e
         self.controller.add_analog_callback("LS_x", self.lsx_callback)
         self.controller.add_analog_callback("LS_y", self.lsy_callback)
         

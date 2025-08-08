@@ -35,6 +35,7 @@ class ServoNode(Node):
     def listener_callback(self, msg):
         # Map the ROS position (-1.0 to 1.0) to pulse width (500 to 2500)
         pulse_width = int(((msg.data + 1) / 2) * (MAX_PULSE - MIN_PULSE) + MIN_PULSE)
+        pulse_width = max(MIN_PULSE, min(MAX_PULSE, pulse_width))
         
         # Only update if position changes significantly to reduce calls
         if self.last_position is None or abs(pulse_width - self.last_position) > 10:

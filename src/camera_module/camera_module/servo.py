@@ -11,7 +11,7 @@ class ServoNode(Node):
         self.servo = Servo(
             SERVO_PIN,
             initial_value=0,
-            min_pulse_width=0.001,  # Try adjusting these
+            min_pulse_width=0.01,  # Try adjusting these
             max_pulse_width=0.002   # Try adjusting these
         )
         self.last_position = None

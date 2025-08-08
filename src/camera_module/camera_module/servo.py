@@ -4,6 +4,7 @@ from std_msgs.msg import Float32
 import gpiod
 import threading
 import time
+from collections import deque
 
 SERVO_PIN = 12
 MIN_PULSE = 500   # microseconds
@@ -12,10 +13,13 @@ MAX_PULSE = 2500  # microseconds
 # The period for a 50Hz PWM signal is 20,000 microseconds
 PWM_PERIOD_US = 20000
 
+# Moving average filter settings
+SMOOTHING_WINDOW_SIZE = 5
+
 class ServoNode(Node):
     def __init__(self):
         super().__init__('servo_node')
-        
+
         # Initialize gpiod
         try:
             self.chip = gpiod.Chip('gpiochip0')
@@ -30,6 +34,9 @@ class ServoNode(Node):
         self.last_pulse_width = self.target_pulse_width
         self.thread_running = True
 
+        # Initialize the moving average filter
+        self.position_history = deque(maxlen=SMOOTHING_WINDOW_SIZE)
+        
         self.subscription = self.create_subscription(
             Float32,
             'servo_position',
@@ -59,14 +66,21 @@ class ServoNode(Node):
             time.sleep(low_time_us / 1000000.0)
 
     def listener_callback(self, msg):
-        pulse_width = int(((msg.data + 1) / 2) * (MAX_PULSE - MIN_PULSE) + MIN_PULSE)
+        # Add the new data to the smoothing window
+        self.position_history.append(msg.data)
+
+        # Calculate the average of the values in the window
+        smoothed_data = sum(self.position_history) / len(self.position_history)
+        
+        # Convert the smoothed data to a pulse width
+        pulse_width = int(((smoothed_data + 1) / 2) * (MAX_PULSE - MIN_PULSE) + MIN_PULSE)
         pulse_width = max(MIN_PULSE, min(MAX_PULSE, pulse_width))
         
-        # Update the target pulse width, the PWM thread handles the rest
+        # Update the target pulse width only if there is a significant change
         if abs(pulse_width - self.last_pulse_width) > 10:
             self.target_pulse_width = pulse_width
             self.last_pulse_width = pulse_width
-            self.get_logger().info(f"Set servo to pulse width: {pulse_width}us")
+            self.get_logger().info(f"Smoothed position: {smoothed_data:.2f}, Set servo to pulse width: {pulse_width}us")
 
     def destroy_node(self):
         # Stop the PWM thread

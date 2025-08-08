@@ -34,6 +34,7 @@ class BTDrive(Node):
                 self.get_logger().info("Nintendo Pro Controller initialized")
             except Exception as e:
                 self.get_logger().info(f"Failed to initialize controller: {e}")
+                self.controller = None
                 time.sleep(3)
         self.controller.add_analog_callback("LS_x", self.lsx_callback)
         self.controller.add_analog_callback("LS_y", self.lsy_callback)

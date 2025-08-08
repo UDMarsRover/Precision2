@@ -2,8 +2,6 @@
 Description=Bluetooth Drive Service
 # Add a dependency to ensure the serial port is available
 # before trying to start the service.
-After=serial-getty@ttyS0.service
-Requires=serial-getty@ttyS0.service
 
 [Service]
 # Set the service type to simple, which is the default for most
@@ -25,7 +23,7 @@ WorkingDirectory=/home/udmrt/Precision2/src/rover/deploy/
 Restart=on-failure
 RestartSec=1s
 StartLimitIntervalSec=30s
-StartLimitBurst=5 # Max number of restarts within StartLimitIntervalSec
+StartLimitBurst=0 # Max number of restarts within StartLimitIntervalSec
 
 [Install]
 WantedBy=multi-user.target

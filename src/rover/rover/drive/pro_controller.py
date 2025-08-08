@@ -1,7 +1,5 @@
 import pygame
 import os
-import time
-
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 class NintendoProController:
@@ -37,23 +35,15 @@ class NintendoProController:
         pygame.init()
         pygame.joystick.init()
 
-        retries = 10
-        delay = 1
-        
-        for i in range(retries):
-            if pygame.joystick.get_count() > 0:
-                print(f"Detected {pygame.joystick.get_count()} joystick(s).")
-                break
-            else:
-                print(f"No joystick detected. Retrying in {delay} second(s)... ({i+1}/{retries})")
-                time.sleep(delay)
+        if pygame.joystick.get_count() == 0:
+            print("No joystick detected. Please connect your Nintendo Pro Controller via Bluetooth.")
+            raise AssertionError("No joystick connected")
         else:
-            raise AssertionError("No joystick connected after multiple attempts.")
+            print(f"Detected {pygame.joystick.get_count()} joystick(s).")
 
         self.joystick = pygame.joystick.Joystick(0)
         self.joystick.init()
-    
-    # ... (rest of the class remains the same)
+
     def kill(self):
         pygame.quit()
         raise SystemExit

@@ -1,6 +1,6 @@
 #!/bin/bash
 # install the bt service
-
+su
 
 cp bt_drive.service /etc/systemd/system/bt_drive.service
 systemctl daemon-reload

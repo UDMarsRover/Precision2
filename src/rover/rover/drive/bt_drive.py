@@ -17,15 +17,11 @@ class BTDrive(Node):
         if not self.serial_conn.connect():
             raise SerialException("Could not connect to motor controller")
 
-        # Attempt to set up the controller
+        # Attempt to set up the controller by waiting for it to be ready.
+        # This will block until the controller is found.
         self.controller = self.setup_controller()
 
-        # If controller setup fails, raise an error to stop the node from starting
-        if self.controller is None:
-            self.get_logger().error("Controller initialization failed after multiple attempts.")
-            raise RuntimeError("Could not connect to controller")
-
-        # Only proceed with subscriptions and callbacks if the controller is active
+        # The rest of __init__ is unchanged as it only runs if the controller is ready.
         self.controller.add_analog_callback("LS_x", self.lsx_callback)
         self.controller.add_analog_callback("LS_y", self.lsy_callback)
         self.get_logger().info("Controller setup complete.")
@@ -46,8 +42,8 @@ class BTDrive(Node):
 
     def setup_controller(self):
         """
-        Attempts to initialize the Nintendo Pro Controller with a retry loop.
-        Returns the controller object on success, or None on failure.
+        Attempts to initialize the Nintendo Pro Controller in a blocking, indefinite loop.
+        It will only return once a controller is successfully initialized.
         """
         while True:
             try:
@@ -57,7 +53,6 @@ class BTDrive(Node):
             except Exception as e:
                 self.get_logger().info(f"Failed to initialize controller: {e}. Retrying in 3 seconds...")
                 time.sleep(3)
-                # This loop will continue indefinitely until the controller is connected.
 
     def control_callback(self, msg):
         self.get_logger().info("LRC active, shutting down bluetooth controller")
@@ -86,7 +81,6 @@ class BTDrive(Node):
         self.get_logger().info(f"Calculated velocities: Left: {left_velocity}, Right: {right_velocity}")
         return left_velocity, right_velocity
 
-# Main function to run the node
 def main(args=None):
     rclpy.init(args=args)
     bt_drive = None
@@ -114,7 +108,6 @@ def main(args=None):
         if bt_drive:
             bt_drive.get_logger().info("Keyboard interrupt received, shutting down.")
     except (RuntimeError, SerialException) as e:
-        # Catch initialization errors here
         if bt_drive:
             bt_drive.get_logger().fatal(f"Initialization failed: {e}")
         else:

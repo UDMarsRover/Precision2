@@ -32,6 +32,7 @@ class BTDrive(Node):
         self.controller.run()
 
     def control_callback(self, msg):
+        self.get_logger().info("LRC active, shutting down bluetooth controller")
         self.lrc_active = True
         self.controller.kill()
 

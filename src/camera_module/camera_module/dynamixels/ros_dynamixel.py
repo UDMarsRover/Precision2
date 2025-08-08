@@ -11,6 +11,7 @@ SERIAL_PORT = '/dev/ttyAMA0'
 MOTOR_ID = 1
 BAUDRATE = 57600
 SMOOTHING_WINDOW_SIZE = 5
+CENTER_POSITION = 1830
 
 class DynamixelMotorNode(Node):
     """
@@ -37,11 +38,11 @@ class DynamixelMotorNode(Node):
         # Create a subscriber to the 'motor_position' topic
         self.subscription = self.create_subscription(
             Float32,
-            'camera_yaw',
+            'motor_position',
             self.listener_callback,
             10
         )
-        self.get_logger().info("Dynamixel motor node is ready. Waiting for messages on 'camera_yaw' topic.")
+        self.get_logger().info("Dynamixel motor node is ready. Waiting for messages on 'motor_position' topic.")
 
     def listener_callback(self, msg):
         """
@@ -58,8 +59,13 @@ class DynamixelMotorNode(Node):
         clamped_data = max(-1.0, min(1.0, smoothed_data))
 
         # Map the clamped data from the [-1.0, 1.0] range to the motor's position range
-        # Formula: new_value = ((old_value - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min
-        mapped_position = ((clamped_data - (-1.0)) / (1.0 - (-1.0))) * (self.max_pos - self.min_pos) + self.min_pos
+        # We now use a two-part linear mapping to set the custom center point.
+        if clamped_data >= 0:
+            # Map [0, 1.0] input to [CENTER_POSITION, max_pos] output
+            mapped_position = clamped_data * (self.max_pos - CENTER_POSITION) + CENTER_POSITION
+        else:
+            # Map [-1.0, 0] input to [min_pos, CENTER_POSITION] output
+            mapped_position = (clamped_data + 1) * (CENTER_POSITION - self.min_pos) + self.min_pos
         
         # Write the new goal position to the motor
         # Dynamixel positions are typically integers

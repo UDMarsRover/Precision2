@@ -11,6 +11,7 @@ SERIAL_PORT = '/dev/ttyAMA0'
 MOTOR_ID = 1
 BAUDRATE = 57600
 SMOOTHING_WINDOW_SIZE = 5
+TRUE_CENTER = 1830
 
 class DynamixelMotorNode(Node):
     """
@@ -26,6 +27,7 @@ class DynamixelMotorNode(Node):
             self.motor = DynamixelMX(SERIAL_PORT, MOTOR_ID, BAUDRATE)
             self.min_pos = self.motor.get_min_position()
             self.max_pos = self.motor.get_max_position()
+            self.pos_delta = ((self.min_pos + self.max_pos) / 2) - TRUE_CENTER
             self.get_logger().info(f"Connected to Dynamixel motor. Position range: {self.min_pos} to {self.max_pos}.")
         except Exception as e:
             self.get_logger().error(f"Failed to initialize Dynamixel motor: {e}")
@@ -62,7 +64,10 @@ class DynamixelMotorNode(Node):
         mapped_position = ((clamped_data - (-1.0)) / (1.0 - (-1.0))) * (self.max_pos - self.min_pos) + self.min_pos
         
         # Write the new goal position to the motor
-        # Dynamixel positions are typically integers
+        # Dynamixel positions are typically integers, so we convert the float to int
+        mapped_position = mapped_position - self.pos_delta
+        if mapped_position < self.min_pos:
+            mapped_position = self.min_pos
         self.motor.write_goal_position(int(mapped_position))
         self.get_logger().info(f"Received: {msg.data:.2f}, Smoothed: {clamped_data:.2f}, Set position to: {int(mapped_position)}")
 

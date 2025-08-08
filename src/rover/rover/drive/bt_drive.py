@@ -26,7 +26,15 @@ class BTDrive(Node):
             raise SerialException("Could not connect to motor controller")
         
         # Nintendo Pro Controller setup
-        self.controller = NintendoProController()
+        controller_alive = False
+        while not controller_alive:
+            try:
+                self.controller = NintendoProController()
+                controller_alive = True
+                self.get_logger().info("Nintendo Pro Controller initialized")
+            except Exception as e:
+                self.get_logger().info(f"Failed to initialize controller: {e}")
+                time.sleep(3)
         self.controller.add_analog_callback("LS_x", self.lsx_callback)
         self.controller.add_analog_callback("LS_y", self.lsy_callback)
         

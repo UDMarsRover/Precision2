@@ -26,20 +26,18 @@ class BTDrive(Node):
             raise SerialException("Could not connect to motor controller")
         
         # Nintendo Pro Controller setup
-        controller_alive = False
-        while not controller_alive:
+        self.controller_alive = False
+        while not self.controller_alive:
             try:
                 self.controller = NintendoProController()
-                controller_alive = True
+                self.controller_alive = True
                 self.get_logger().info("Nintendo Pro Controller initialized")
             except Exception as e:
                 self.get_logger().info(f"Failed to initialize controller: {e}")
                 self.controller = None
                 time.sleep(3)
-        
-        if self.controller:
-            self.controller.add_analog_callback("LS_x", self.lsx_callback)
-            self.controller.add_analog_callback("LS_y", self.lsy_callback)
+        self.controller.add_analog_callback("LS_x", self.lsx_callback)
+        self.controller.add_analog_callback("LS_y", self.lsy_callback)
         
         self.right_velocity = 0.0
         self.left_velocity = 0.0
@@ -93,15 +91,13 @@ def main(args=None):
             executor.spin_once(timeout_sec=0)
             
             # Check for controller events and process them
-            if not bt_drive.lrc_active and bt_drive.controller is not None:
-                try:
-                    bt_drive.controller.spin_once()
-                except Exception as e:
-                    bt_drive.get_logger().error(f"Controller runtime error: {e}")
-                    # A runtime error occurred with the controller, so we should stop using it.
-                    bt_drive.lrc_active = True
-            elif bt_drive.lrc_active:
-                # If LRC is active, we should break out of this loop.
+            if not bt_drive.lrc_active:
+                # You'll need a non-blocking method from your controller library.
+                # Assuming `controller.spin_once()` or similar exists.
+                # If not, you might need to find an equivalent to process events.
+                bt_drive.controller.spin_once()
+            else:
+                # If LRC is active, we can break out of the controller processing.
                 break
 
             time.sleep(0.01) # Small sleep to prevent busy-waiting
@@ -110,7 +106,7 @@ def main(args=None):
         bt_drive.get_logger().info("Keyboard interrupt received, shutting down.")
     finally:
         bt_drive.get_logger().info("Shutting down...")
-        if bt_drive.controller is not None:
+        if not bt_drive.lrc_active:
             bt_drive.controller.kill()
         bt_drive.serial_conn.disconnect()
         bt_drive.destroy_node()

@@ -13,4 +13,4 @@ COPY ../ /workspace/camera_module
 RUN pip3 install -r /workspace/camera_module/requirements.txt || true
 
 # Source ROS 2 setup and run servo node
-CMD ["ros2", "run", "camera_module", "servo"]
+CMD ["sleep", "infinity"]

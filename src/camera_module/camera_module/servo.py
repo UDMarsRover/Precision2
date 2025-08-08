@@ -22,6 +22,7 @@ class ServoNode(Node):
             10
         )
         self.get_logger().info(f"Servo node started. Listening on 'servo_position' topic.")
+        self.servo.value = 0  # Initialize servo position
 
     def listener_callback(self, msg):
         position = max(-1.0, min(1.0, msg.data))

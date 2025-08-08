@@ -1,8 +1,19 @@
 from rover.drive.pro_controller import NintendoProController
 from rover.drive.UDMRTMotorSerial import UDMRTMotorSerial
 from serial.serialutil import SerialException
-class BTDrive:
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import Float32MultiArray
+class BTDrive(Node):
     def __init__(self, serial_port='/dev/serial/by-id/usb-Adafruit_Feather_M4_CAN_CC17951D534837434E202020FF0F291F-if00'):
+        super().__init__('bt_drive_node')
+
+        self.controller_sub = self.create_subscription(
+            Float32MultiArray,
+            'drive_velocities',
+            self.control_callback,
+            10
+        )
         self.serial_conn = UDMRTMotorSerial(port=serial_port, baudrate=115200)
         if not self.serial_conn.connect():
             raise SerialException("Could not connect to motor controller")
@@ -16,7 +27,14 @@ class BTDrive:
         self.max_velocity = 300
         self.ls_received = False
 
+        self.lrc_active = False
+
         self.controller.run()
+
+    def control_callback(self, msg):
+        self.lrc_active = True
+        self.controller.kill()
+
 
     def lsy_callback(self, value):
         # Only calculate velocities if lsc_callback has been called with a new value
@@ -44,6 +62,7 @@ class BTDrive:
         parsed_data = self.serial_conn.spin_once()
 
     def calculate_velocities(self, x, y):
+        rclpy.spin_once(self)
         left_velocity = ((-y) + 0.5 * x) * self.max_velocity
         right_velocity = ((-y) - 0.5 * x) * self.max_velocity
         if left_velocity > self.max_velocity:
@@ -58,6 +77,7 @@ class BTDrive:
         
 
 def main(args=None):
+    rclpy.init(args=args)
     bt_drive = BTDrive()
 
 if __name__ == '__main__':

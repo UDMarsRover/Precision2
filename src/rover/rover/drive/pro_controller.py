@@ -42,6 +42,10 @@ class NintendoProController:
         self.joystick = pygame.joystick.Joystick(0)
         self.joystick.init()
 
+    def kill(self):
+        pygame.quit()
+        raise SystemExit
+
     def add_button_callback(self, button_name, callback):
         """
         Add a callback function for a specific button press.

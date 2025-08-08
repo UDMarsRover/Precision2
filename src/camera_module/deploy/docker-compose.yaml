@@ -13,6 +13,8 @@ services:
     environment:
       - ROS_DOMAIN_ID=0
     restart: unless-stopped
+    network_mode: host
+    ipc: host
 
     command: tail -f /dev/null
 

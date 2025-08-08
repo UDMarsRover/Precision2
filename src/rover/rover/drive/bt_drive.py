@@ -7,7 +7,7 @@ from std_msgs.msg import Float32MultiArray
 class BTDrive(Node):
     def __init__(self, serial_port='/dev/serial/by-id/usb-Adafruit_Feather_M4_CAN_CC17951D534837434E202020FF0F291F-if00'):
         super().__init__('bt_drive_node')
-
+        self.get_logger().info("BTDrive node initialized")
         self.controller_sub = self.create_subscription(
             Float32MultiArray,
             'drive_velocities',

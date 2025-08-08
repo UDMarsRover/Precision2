@@ -64,6 +64,7 @@ class BTDrive(Node):
         right_velocity = ((-y) - 0.5 * x) * self.max_velocity
         left_velocity = max(min(left_velocity, self.max_velocity), -self.max_velocity)
         right_velocity = max(min(right_velocity, self.max_velocity), -self.max_velocity)
+        self.get_logger().info(f"Calculated velocities: Left: {left_velocity}, Right: {right_velocity}")
         return left_velocity, right_velocity
 
 # Main function to run the node

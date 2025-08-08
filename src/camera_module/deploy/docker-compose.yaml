@@ -12,3 +12,6 @@ services:
     environment:
       - ROS_DOMAIN_ID=0
     restart: unless-stopped
+
+    command: tail -f /dev/null
+

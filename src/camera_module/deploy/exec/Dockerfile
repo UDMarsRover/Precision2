@@ -12,5 +12,7 @@ COPY src/camera_module /workspace/camera_module
 # Install Python dependencies
 RUN pip3 install -r /workspace/camera_module/requirements.txt || true
 
+ENV GPIOZERO_PIN_FACTORY=pigpio
+
 # Source ROS 2 setup and run servo node
 CMD ["sleep", "infinity"]

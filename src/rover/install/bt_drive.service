@@ -1,16 +1,31 @@
 [Unit]
 Description=Bluetooth Drive Service
+# Add a dependency to ensure the serial port is available
+# before trying to start the service.
+After=serial-getty@ttyS0.service
+Requires=serial-getty@ttyS0.service
 
 [Service]
+# Set the service type to simple, which is the default for most
+# services that run a single process.
+Type=simple
 RemainAfterExit=false
 
-WorkingDirectory=/home/udmrt/Precision2/src/rover/install/
-ExecStart=bt_drive.sh
+# Use the full path for ExecStart for clarity and robustness.
+ExecStart=/home/udmrt/Precision2/src/rover/install/bt_drive.sh
 
+# User and Group are good practice to run the service with limited permissions.
+User=udmrt
+Group=udmrt
+
+# Set the working directory
+WorkingDirectory=/home/udmrt/Precision2/src/rover/install/
+
+# Restart on any failure
 Restart=on-failure
 RestartSec=1s
 StartLimitIntervalSec=30s
-
+StartLimitBurst=5 # Max number of restarts within StartLimitIntervalSec
 
 [Install]
 WantedBy=multi-user.target

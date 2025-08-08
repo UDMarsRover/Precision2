@@ -12,6 +12,24 @@ class BTDrive(Node):
         super().__init__('bt_drive_node')
         self.get_logger().info("BTDrive node initialized")
 
+        # Serial connection setup
+        self.serial_conn = UDMRTMotorSerial(port=serial_port, baudrate=115200)
+        if not self.serial_conn.connect():
+            raise SerialException("Could not connect to motor controller")
+
+        # Attempt to set up the controller
+        self.controller = self.setup_controller()
+
+        # If controller setup fails, raise an error to stop the node from starting
+        if self.controller is None:
+            self.get_logger().error("Controller initialization failed after multiple attempts.")
+            raise RuntimeError("Could not connect to controller")
+
+        # Only proceed with subscriptions and callbacks if the controller is active
+        self.controller.add_analog_callback("LS_x", self.lsx_callback)
+        self.controller.add_analog_callback("LS_y", self.lsy_callback)
+        self.get_logger().info("Controller setup complete.")
+
         # ROS 2 subscription
         self.controller_sub = self.create_subscription(
             Float32MultiArray,
@@ -20,38 +38,30 @@ class BTDrive(Node):
             10
         )
         
-        # Serial connection
-        self.serial_conn = UDMRTMotorSerial(port=serial_port, baudrate=115200)
-        if not self.serial_conn.connect():
-            raise SerialException("Could not connect to motor controller")
-        
-        # Nintendo Pro Controller setup
-        self.controller_alive = False
-        while not self.controller_alive:
-            try:
-                self.controller = NintendoProController()
-                self.controller_alive = True
-                self.get_logger().info("Nintendo Pro Controller initialized")
-            except Exception as e:
-                self.get_logger().info(f"Failed to initialize controller: {e}")
-                self.controller = None
-                raise AssertionError("No joystick connected") from e
-        self.controller.add_analog_callback("LS_x", self.lsx_callback)
-        self.controller.add_analog_callback("LS_y", self.lsy_callback)
-        
         self.right_velocity = 0.0
         self.left_velocity = 0.0
         self.max_velocity = 300
         self.ls_received = False
         self.lrc_active = False
 
-        self.get_logger().info("Controller setup complete.")
+    def setup_controller(self):
+        """
+        Attempts to initialize the Nintendo Pro Controller with a retry loop.
+        Returns the controller object on success, or None on failure.
+        """
+        while True:
+            try:
+                controller = NintendoProController()
+                self.get_logger().info("Nintendo Pro Controller initialized")
+                return controller
+            except Exception as e:
+                self.get_logger().info(f"Failed to initialize controller: {e}. Retrying in 3 seconds...")
+                time.sleep(3)
+                # This loop will continue indefinitely until the controller is connected.
 
     def control_callback(self, msg):
         self.get_logger().info("LRC active, shutting down bluetooth controller")
         self.lrc_active = True
-        # NOTE: The controller will be killed in the main loop's shutdown logic.
-        # This callback sets a flag to indicate the main loop should stop using the controller.
 
     def lsy_callback(self, value):
         if self.ls_received:
@@ -79,37 +89,44 @@ class BTDrive(Node):
 # Main function to run the node
 def main(args=None):
     rclpy.init(args=args)
-    bt_drive = BTDrive()
-    
-    executor = SingleThreadedExecutor()
-    executor.add_node(bt_drive)
-
+    bt_drive = None
     try:
+        bt_drive = BTDrive()
+        executor = SingleThreadedExecutor()
+        executor.add_node(bt_drive)
         bt_drive.get_logger().info("Starting combined event loop...")
+
         while rclpy.ok():
-            # Process ROS 2 events
             executor.spin_once(timeout_sec=0)
             
-            # Check for controller events and process them
-            if not bt_drive.lrc_active:
-                # You'll need a non-blocking method from your controller library.
-                # Assuming `controller.spin_once()` or similar exists.
-                # If not, you might need to find an equivalent to process events.
-                bt_drive.controller.spin_once()
-            else:
-                # If LRC is active, we can break out of the controller processing.
+            if not bt_drive.lrc_active and bt_drive.controller is not None:
+                try:
+                    bt_drive.controller.spin_once()
+                except Exception as e:
+                    bt_drive.get_logger().error(f"Controller runtime error: {e}")
+                    bt_drive.lrc_active = True
+            elif bt_drive.lrc_active:
                 break
 
-            time.sleep(0.01) # Small sleep to prevent busy-waiting
+            time.sleep(0.01)
             
     except KeyboardInterrupt:
-        bt_drive.get_logger().info("Keyboard interrupt received, shutting down.")
+        if bt_drive:
+            bt_drive.get_logger().info("Keyboard interrupt received, shutting down.")
+    except (RuntimeError, SerialException) as e:
+        # Catch initialization errors here
+        if bt_drive:
+            bt_drive.get_logger().fatal(f"Initialization failed: {e}")
+        else:
+            print(f"Initialization failed: {e}")
     finally:
-        bt_drive.get_logger().info("Shutting down...")
-        if not bt_drive.lrc_active:
-            bt_drive.controller.kill()
-        bt_drive.serial_conn.disconnect()
-        bt_drive.destroy_node()
+        if bt_drive:
+            bt_drive.get_logger().info("Shutting down...")
+            if bt_drive.controller is not None:
+                bt_drive.controller.kill()
+            if bt_drive.serial_conn:
+                bt_drive.serial_conn.disconnect()
+            bt_drive.destroy_node()
         rclpy.shutdown()
 
 if __name__ == '__main__':

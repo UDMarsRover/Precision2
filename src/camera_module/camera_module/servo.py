@@ -10,6 +10,7 @@ SERVO_PIN = 12
 MIN_PULSE = 500   # microseconds
 MAX_PULSE = 2500  # microseconds
 MIN_POSITION = -0.7  # New minimum position, as a percentage of the total range (-1.0 to 1.0)
+MAX_POSITION = 0.5   # New maximum position, as a percentage of the total range (-1.0 to 1.0)
 
 # The period for a 50Hz PWM signal is 20,000 microseconds
 PWM_PERIOD_US = 20000
@@ -75,6 +76,7 @@ class ServoNode(Node):
 
         # Enforce the new minimum position
         smoothed_data = max(MIN_POSITION, smoothed_data)
+        smoothed_data = min(MAX_POSITION, smoothed_data)
 
         # Convert the smoothed data to a pulse width
         pulse_width = int(((smoothed_data + 1) / 2) * (MAX_PULSE - MIN_PULSE) + MIN_PULSE)

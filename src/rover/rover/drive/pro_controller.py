@@ -37,7 +37,7 @@ class NintendoProController:
 
         if pygame.joystick.get_count() == 0:
             print("No joystick detected. Please connect your Nintendo Pro Controller via Bluetooth.")
-            exit(1)
+            raise AssertionError("No joystick connected")
 
         self.joystick = pygame.joystick.Joystick(0)
         self.joystick.init()

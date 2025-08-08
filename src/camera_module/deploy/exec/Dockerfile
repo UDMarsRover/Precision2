@@ -2,7 +2,7 @@ FROM ros:humble-ros-base
 
 # Install dependencies
 RUN apt-get update && \
-    apt-get install -y python3-colcon-common-extensions python3-pip python3-rclpy python3-rosdep python3-rosinstall python3-rosinstall-generator python3-vcstool && \
+    apt-get install -y python3-pip python3-gpiozero && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy camera_module package

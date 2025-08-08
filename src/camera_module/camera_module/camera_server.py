@@ -15,14 +15,15 @@ OUTPUT_RESOLUTIONS = {
     "480p": (640, 480),
     "720p": (1280, 720),
     "1080p": (1920, 1080),
-    "4k": (3840, 2160) # Note: 4K may be too slow for real-time streaming
+    "4k": (3840, 2160)
 }
 
 # Define supported zoom levels (multipliers)
 ZOOM_LEVELS = [1.0, 1.5, 2.0, 3.0, 4.0]
 
-# Capture resolution from the sensor. This should be high enough to allow for maximum zoom without losing detail.
-# A resolution of 2304x1296 provides a 16:9 aspect ratio and is a common high-resolution video mode.
+# Capture resolution from the sensor. Use a high-enough resolution for effective zooming.
+# The Pi Camera Module 3's full resolution is 4608x2592, but a 16:9 aspect ratio like
+# 2304x1296 is often a good compromise for video streams.
 SENSOR_CAPTURE_RESOLUTION = (2304, 1296)
 
 # Default output settings for each camera
@@ -74,12 +75,14 @@ def capture_and_process_frames(camera_id):
         # Store the instance globally for clean shutdown
         latest_camera_data[camera_id]["picam2"] = picam2
         
-        # Calculate aspect ratio
         sensor_width, sensor_height = SENSOR_CAPTURE_RESOLUTION
 
         print(f"Camera {camera_id} sensor is configured to {sensor_width}x{sensor_height}. Entering capture loop.")
 
         while True:
+            # Capture the raw frame from the camera
+            full_frame = picam2.capture_array()
+            
             # Get the latest desired output settings from the global state
             with latest_camera_data[camera_id]["lock"]:
                 output_res_str = latest_camera_data[camera_id]["output_res_str"]
@@ -87,22 +90,21 @@ def capture_and_process_frames(camera_id):
             
             output_width, output_height = OUTPUT_RESOLUTIONS[output_res_str]
 
-            # Calculate the crop region based on the desired zoom level
+            # --- Apply Zoom (Cropping) ---
+            # Calculate the dimensions of the cropped area based on zoom level
             cropped_width = int(sensor_width / zoom_level)
             cropped_height = int(sensor_height / zoom_level)
+            
+            # Calculate crop start coordinates to center the crop
             start_x = (sensor_width - cropped_width) // 2
             start_y = (sensor_height - cropped_height) // 2
 
-            # Capture a frame with the desired crop and output size
-            # Picamera2 performs this cropping and resizing in hardware (GPU)
-            frame_array = picam2.capture_array(
-                stream="main",
-                # The below arguments define the hardware-accelerated processing
-                # We specify the region to crop from the sensor
-                # and the size to which the cropped region should be resized
-                _transform={"crop": (start_x, start_y, cropped_width, cropped_height),
-                           "size": (output_width, output_height)}
-            )
+            # Perform the crop using numpy slicing
+            cropped_frame = full_frame[start_y:start_y + cropped_height,
+                                       start_x:start_x + cropped_width]
+
+            # --- Resize to desired output resolution using cv2 ---
+            processed_frame = cv2.resize(cropped_frame, (output_width, output_height), interpolation=cv2.INTER_AREA)
 
             # Add an overlay for information
             if camera_id == 0:
@@ -110,11 +112,11 @@ def capture_and_process_frames(camera_id):
             else:
                 camera_id_str = "Zoom Camera"
             overlay_text = f"{camera_id_str} - Zoom: {zoom_level}x - Output: {output_width}x{output_height}"
-            cv2.putText(frame_array, overlay_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1, cv2.LINE_AA)
+            cv2.putText(processed_frame, overlay_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1, cv2.LINE_AA)
 
             # Store the processed frame in the global state
             with latest_camera_data[camera_id]["lock"]:
-                latest_camera_data[camera_id]["frame"] = frame_array
+                latest_camera_data[camera_id]["frame"] = processed_frame
             
             # A small delay to prevent the thread from consuming too much CPU.
             time.sleep(0.01)
@@ -144,7 +146,6 @@ def generate_frames(camera_id):
 
         if frame is not None:
             # Encode the frame as JPEG
-            # Quality of 90 is a good balance between file size and quality
             ret, buffer = cv2.imencode('.jpeg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
             if not ret:
                 continue
@@ -206,7 +207,7 @@ def root():
     <head><title>Pi Camera Stream API</title></head>
     <body>
         <h1>Optimized Pi Camera Stream API</h1>
-        <p>Access camera feeds directly. The camera streams are hardware-accelerated for better performance.</p>
+        <p>Access camera feeds directly. The camera streams are now processed on the CPU for compatibility.</p>
         <p>Available resolutions: {res_list}</p>
         <p>Available zoom levels: {zoom_list}</p>
         <p>Example for Camera 0: <a href="/stream/0?resolution=720p&zoom=1.0">/stream/0?resolution=720p&zoom=1.0</a></p>

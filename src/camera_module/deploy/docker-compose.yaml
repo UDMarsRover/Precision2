@@ -1,0 +1,14 @@
+
+version: '3.8'
+services:
+  camera-servo:
+    build:
+      context: ./exec
+    container_name: camera_servo
+    privileged: true
+    devices:
+      - /dev/gpiomem:/dev/gpiomem
+      - /dev/gpiochip0:/dev/gpiochip0
+    environment:
+      - ROS_DOMAIN_ID=0
+    restart: unless-stopped

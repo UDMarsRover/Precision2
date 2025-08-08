@@ -1,36 +1,29 @@
-from picamera2 import Picamera2
+# optimized_server.py
+
+from picamera2 import Picamera2, MappedArray
 import cv2
 from flask import Flask, Response, request
 import threading
 import time
 import numpy as np
 
+# --- Global Configuration ---
 app = Flask(__name__)
 
-# Define supported output resolutions
+# Define supported output resolutions for the stream
 OUTPUT_RESOLUTIONS = {
     "480p": (640, 480),
     "720p": (1280, 720),
     "1080p": (1920, 1080),
-    "4k": (3840, 2160) # Actual 4K (UHD)
+    "4k": (3840, 2160) # Note: 4K may be too slow for real-time streaming
 }
 
 # Define supported zoom levels (multipliers)
-# A zoom level of 1 means no zoom (full sensor view, then scaled to output_resolution)
-# A zoom level of 2 means 2x zoom (crop to 1/2 width, 1/2 height, then scaled)
-ZOOM_LEVELS = [1.0, 1.5, 2.0, 3.0, 4.0] # Example zoom levels
+ZOOM_LEVELS = [1.0, 1.5, 2.0, 3.0, 4.0]
 
-# Sensor resolutions for Pi Camera Module 3 (approximate)
-# Use a resolution that gives enough pixels for zooming effectively
-# For Camera Module 3, it's often 4608x2592 (full resolution) or similar high resolutions
-SENSOR_RESOLUTIONS = {
-    # Full resolution of Pi Camera Module 3
-    # Choose the highest resolution that the sensor can actually provide for cropping
-    "full": (4608, 2592),
-    # You might also use a specific 'video' mode resolution if 'full' is too slow
-    # e.g., (2304, 1296) for a 16:9 aspect ratio often used in video modes
-}
-SENSOR_CAPTURE_RESOLUTION = SENSOR_RESOLUTIONS["full"] # Always capture at full sensor resolution
+# Capture resolution from the sensor. This should be high enough to allow for maximum zoom without losing detail.
+# A resolution of 2304x1296 provides a 16:9 aspect ratio and is a common high-resolution video mode.
+SENSOR_CAPTURE_RESOLUTION = (2304, 1296)
 
 # Default output settings for each camera
 DEFAULT_OUTPUT_SETTINGS = {
@@ -38,173 +31,126 @@ DEFAULT_OUTPUT_SETTINGS = {
     "zoom": 1.0
 }
 
-# Global variables to store the latest frame from each camera
-# Also store the *desired* output resolution and zoom for each camera
-# Using threading.Lock to ensure thread-safe access to frames and settings
+# Global state for each camera, including the latest frame and settings
 latest_camera_data = {
     0: {
         "frame": None,
         "lock": threading.Lock(),
-        "current_output_res_str": DEFAULT_OUTPUT_SETTINGS["resolution"],
-        "current_zoom_level": DEFAULT_OUTPUT_SETTINGS["zoom"],
-        "sensor_resolution_set": SENSOR_CAPTURE_RESOLUTION # Actual resolution camera is configured to
+        "output_res_str": DEFAULT_OUTPUT_SETTINGS["resolution"],
+        "zoom_level": DEFAULT_OUTPUT_SETTINGS["zoom"],
+        "picam2": None, # Picamera2 instance
     },
     1: {
         "frame": None,
         "lock": threading.Lock(),
-        "current_output_res_str": DEFAULT_OUTPUT_SETTINGS["resolution"],
-        "current_zoom_level": DEFAULT_OUTPUT_SETTINGS["zoom"],
-        "sensor_resolution_set": SENSOR_CAPTURE_RESOLUTION
+        "output_res_str": DEFAULT_OUTPUT_SETTINGS["resolution"],
+        "zoom_level": DEFAULT_OUTPUT_SETTINGS["zoom"],
+        "picam2": None,
     }
 }
 
-# Events to signal a re-capture based on new output settings
-settings_change_event = {
-    0: threading.Event(),
-    1: threading.Event()
-}
-
-# Picamera2 instances (initialized globally, will be created in threads)
-picam2_instances = {
-    0: None,
-    1: None
-}
-
-# Function to initialize/reconfigure a camera to its base sensor resolution
-def configure_camera_for_sensor_capture(camera_id, sensor_res_tuple):
-    # If the instance already exists and is started, stop it
-    if picam2_instances[camera_id] is not None:
-        try:
-            if picam2_instances[camera_id].started:
-                picam2_instances[camera_id].stop()
-                print(f"Camera {camera_id}: Stopped for sensor reconfiguration.")
-                time.sleep(0.1) # Give a moment for the camera to settle
-            else:
-                print(f"Camera {camera_id}: Not started, proceeding to configure sensor.")
-        except Exception as e:
-            print(f"Error trying to stop camera {camera_id}: {e}")
-
-    try:
-        # Create a new Picamera2 instance if it doesn't exist or if stopping failed
-        if picam2_instances[camera_id] is None or not isinstance(picam2_instances[camera_id], Picamera2):
-            picam2_instances[camera_id] = Picamera2(camera_id)
-
-        config = picam2_instances[camera_id].create_preview_configuration(
-            main={"format": 'XRGB8888', "size": sensor_res_tuple}
-        )
-        picam2_instances[camera_id].configure(config)
-        picam2_instances[camera_id].start()
-        print(f"Camera {camera_id}: Sensor configured to {sensor_res_tuple[0]}x{sensor_res_tuple[1]}")
-        time.sleep(1) # Warm-up time for the camera
-    except Exception as e:
-        print(f"Error configuring/starting camera {camera_id} sensor to {sensor_res_tuple}: {e}")
-        picam2_instances[camera_id] = None # Mark as failed or unavailable
-        return False
-    return True
-
-# Function to capture frames, apply zoom/resize, and update global latest_frame
+# --- Camera Thread Functions ---
 def capture_and_process_frames(camera_id):
-    # Initial sensor configuration
-    sensor_res_to_use = latest_camera_data[camera_id]["sensor_resolution_set"]
-    print(f"Camera {camera_id} capture thread started with sensor resolution: {sensor_res_to_use}")
-
-    if not configure_camera_for_sensor_capture(camera_id, sensor_res_to_use):
-        print(f"Initial sensor configuration failed for camera {camera_id}. Exiting thread.")
-        return # Exit thread if initial setup fails
-
+    """
+    Dedicated thread for each camera to capture, process, and store frames.
+    This thread continuously runs and adapts to settings changes without restarting the camera.
+    """
+    print(f"Starting capture thread for camera {camera_id}...")
     try:
+        # Initialize and configure the camera instance once
+        picam2 = Picamera2(camera_id)
+        config = picam2.create_preview_configuration(
+            main={"size": SENSOR_CAPTURE_RESOLUTION, "format": "XRGB8888"}
+        )
+        picam2.configure(config)
+        picam2.start()
+
+        # Store the instance globally for clean shutdown
+        latest_camera_data[camera_id]["picam2"] = picam2
+        
+        # Calculate aspect ratio
+        sensor_width, sensor_height = SENSOR_CAPTURE_RESOLUTION
+        sensor_aspect_ratio = sensor_width / sensor_height
+
+        print(f"Camera {camera_id} sensor is configured to {sensor_width}x{sensor_height}. Entering capture loop.")
+
         while True:
-            # Check for settings change signal (not sensor resolution, but output res/zoom)
-            if settings_change_event[camera_id].is_set():
-                settings_change_event[camera_id].clear() # Reset the event
-                # Reconfigure the sensor if necessary (though we aim to keep it constant)
-                # If you allowed changing sensor_capture_resolution, you'd reconfigure here.
-                print(f"Camera {camera_id}: Output settings change requested. Sensor capture resolution remains {SENSOR_CAPTURE_RESOLUTION}")
-
-            # Ensure camera is started before capturing
-            if picam2_instances[camera_id] is None or not picam2_instances[camera_id].started:
-                print(f"Camera {camera_id} not started. Attempting to restart sensor...")
-                if not configure_camera_for_sensor_capture(camera_id, SENSOR_CAPTURE_RESOLUTION):
-                    time.sleep(2) # Prevent busy loop if configuration repeatedly fails
-                    continue # Skip frame capture for this iteration
-
-            # Capture the full sensor frame
-            full_frame = picam2_instances[camera_id].capture_array()
-            sensor_height, sensor_width, _ = full_frame.shape
-
-            # Get current desired output settings
+            # Get the latest desired output settings from the global state
             with latest_camera_data[camera_id]["lock"]:
-                output_res_str = latest_camera_data[camera_id]["current_output_res_str"]
-                zoom_level = latest_camera_data[camera_id]["current_zoom_level"]
+                output_res_str = latest_camera_data[camera_id]["output_res_str"]
+                zoom_level = latest_camera_data[camera_id]["zoom_level"]
             
             output_width, output_height = OUTPUT_RESOLUTIONS[output_res_str]
 
-            # --- Apply Zoom (Cropping) ---
-            # Calculate the dimensions of the cropped area based on zoom level
-            # The cropped area will be 1/zoom_level of the sensor dimensions
+            # Calculate the crop region based on the desired zoom level
             cropped_width = int(sensor_width / zoom_level)
             cropped_height = int(sensor_height / zoom_level)
-
-            # Calculate crop start coordinates to center the crop
             start_x = (sensor_width - cropped_width) // 2
             start_y = (sensor_height - cropped_height) // 2
 
-            # Perform the crop
-            cropped_frame = full_frame[start_y : start_y + cropped_height,
-                                       start_x : start_x + cropped_width]
+            # Capture a frame with the desired crop and output size
+            # Picamera2 performs this cropping and resizing in hardware (GPU)
+            frame_array = picam2.capture_array(
+                stream="main",
+                # The below arguments define the hardware-accelerated processing
+                # We specify the region to crop from the sensor
+                # and the size to which the cropped region should be resized
+                _transform={"crop": (start_x, start_y, cropped_width, cropped_height),
+                           "size": (output_width, output_height)}
+            )
 
-            # --- Resize to desired output resolution ---
-            processed_frame = cv2.resize(cropped_frame, (output_width, output_height), interpolation=cv2.INTER_AREA)
-
-            # Optional: Add text overlay (camera ID, zoom, output resolution)
+            # Add an overlay for information
             if camera_id == 0:
                 camera_id_str = "IR Camera"
             else:
                 camera_id_str = "Zoom Camera"
             overlay_text = f"{camera_id_str} - Zoom: {zoom_level}x - Output: {output_width}x{output_height}"
-            cv2.putText(processed_frame, overlay_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 2, cv2.LINE_AA)
+            cv2.putText(frame_array, overlay_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1, cv2.LINE_AA)
 
-            # Store the processed frame
+            # Store the processed frame in the global state
             with latest_camera_data[camera_id]["lock"]:
-                latest_camera_data[camera_id]["frame"] = processed_frame
-            time.sleep(0.01) # Small delay to prevent busy-waiting
-    except Exception as e:
-        print(f"Camera {camera_id} capture/processing error: {e}")
-    finally:
-        if picam2_instances[camera_id] is not None:
-            if picam2_instances[camera_id].started:
-                picam2_instances[camera_id].stop()
-                print(f"Camera {camera_id}: Stopped due to thread exit.")
-            picam2_instances[camera_id] = None # Clear instance
+                latest_camera_data[camera_id]["frame"] = frame_array
 
-# Start separate threads for each camera
-camera_threads = []
-for i in range(2): # For 2 cameras (0 and 1)
-    thread = threading.Thread(target=capture_and_process_frames, args=(i,))
-    thread.daemon = True # Allow main program to exit even if threads are running
-    camera_threads.append(thread)
-    thread.start()
+    except Exception as e:
+        print(f"Capture thread for camera {camera_id} encountered an error: {e}")
+    finally:
+        # Clean up the camera instance when the thread exits
+        if latest_camera_data[camera_id]["picam2"] and latest_camera_data[camera_id]["picam2"].started:
+            latest_camera_data[camera_id]["picam2"].stop()
+        print(f"Camera {camera_id}: Stopped due to thread exit.")
+        latest_camera_data[camera_id]["picam2"] = None
 
 # Generator function for streaming frames to Flask
 def generate_frames(camera_id):
+    """
+    Generator that provides JPEG frames for the Flask response.
+    It fetches the latest processed frame from the capture thread.
+    """
     while True:
         with latest_camera_data[camera_id]["lock"]:
             frame = latest_camera_data[camera_id]["frame"]
 
         if frame is not None:
             # Encode the frame as JPEG
+            # Quality of 90 is a good balance between file size and quality
             ret, buffer = cv2.imencode('.jpeg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
             if not ret:
                 continue
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-        time.sleep(0.03) # Adjust for desired frame rate
+        
+        # A small delay here to prevent the streaming from consuming too much CPU on the Flask side
+        # The main frame rate is controlled by the capture thread
+        time.sleep(0.01)
 
-# Flask route for dynamic video feeds
-# Example URL: http://<PI_IP>:5000/stream/0?resolution=720p&zoom=2.0
+# --- Flask Routes ---
 @app.route('/stream/<int:camera_id>')
 def stream_feed(camera_id):
-    if camera_id not in [0, 1]:
+    """
+    Main route to serve the video stream.
+    Allows for dynamic resolution and zoom control via URL parameters.
+    """
+    if camera_id not in latest_camera_data:
         return "Invalid camera ID. Use 0 or 1.", 400
 
     requested_resolution = request.args.get('resolution', DEFAULT_OUTPUT_SETTINGS["resolution"]).lower()
@@ -222,68 +168,59 @@ def stream_feed(camera_id):
     except ValueError:
         return f"Invalid zoom value: '{requested_zoom_str}'. Must be a number.", 400
 
-    # Check if settings need to be updated for this camera
-    settings_changed = False
+    # Update the global state with the new settings
     with latest_camera_data[camera_id]["lock"]:
-        if (latest_camera_data[camera_id]["current_output_res_str"] != requested_resolution or
-            latest_camera_data[camera_id]["current_zoom_level"] != requested_zoom):
+        if (latest_camera_data[camera_id]["output_res_str"] != requested_resolution or
+            latest_camera_data[camera_id]["zoom_level"] != requested_zoom):
             
-            latest_camera_data[camera_id]["current_output_res_str"] = requested_resolution
-            latest_camera_data[camera_id]["current_zoom_level"] = requested_zoom
-            settings_changed = True
+            latest_camera_data[camera_id]["output_res_str"] = requested_resolution
+            latest_camera_data[camera_id]["zoom_level"] = requested_zoom
             print(f"Camera {camera_id}: Settings updated to Resolution={requested_resolution}, Zoom={requested_zoom}x")
         else:
             print(f"Camera {camera_id}: No settings change requested. Streaming with existing settings.")
 
-    # Signal the camera thread to apply new settings if they changed
-    if settings_changed:
-        settings_change_event[camera_id].set()
-
     return Response(generate_frames(camera_id), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-# Basic root route for instructions (optional, but helpful)
 @app.route('/')
 def root():
+    """Basic root route for instructions."""
+    res_list = ', '.join(OUTPUT_RESOLUTIONS.keys())
+    zoom_list = ', '.join(map(str, ZOOM_LEVELS))
     return f"""
     <html>
     <head><title>Pi Camera Stream API</title></head>
     <body>
-        <h1>Pi Camera Stream API</h1>
-        <p>Access camera feeds directly:</p>
-        <ul>
-            <li>Camera 0: <code>/stream/0?resolution=720p&zoom=1.0</code></li>
-            <li>Camera 1: <code>/stream/1?resolution=1080p&zoom=2.0</code></li>
-        </ul>
-        <p>Available resolutions: {', '.join(OUTPUT_RESOLUTIONS.keys())}</p>
-        <p>Available zoom levels: {', '.join(map(str, ZOOM_LEVELS))}</p>
-        <p>Example: <a href="/stream/0?resolution=480p&zoom=1.5">/stream/0?resolution=480p&zoom=1.5</a></p>
-        <p>Example: <a href="/stream/1?resolution=1080p&zoom=3.0">/stream/1?resolution=1080p&zoom=3.0</a></p>
+        <h1>Optimized Pi Camera Stream API</h1>
+        <p>Access camera feeds directly. The camera streams are hardware-accelerated for better performance.</p>
+        <p>Available resolutions: {res_list}</p>
+        <p>Available zoom levels: {zoom_list}</p>
+        <p>Example for Camera 0: <a href="/stream/0?resolution=720p&zoom=1.0">/stream/0?resolution=720p&zoom=1.0</a></p>
+        <p>Example for Camera 1: <a href="/stream/1?resolution=1080p&zoom=2.0">/stream/1?resolution=1080p&zoom=2.0</a></p>
     </body>
     </html>
     """
 
-
 def main():
+    """Starts the camera threads and the Flask application."""
+    # Start separate threads for each camera
+    camera_threads = []
+    for i in range(len(latest_camera_data)):
+        thread = threading.Thread(target=capture_and_process_frames, args=(i,))
+        thread.daemon = True
+        camera_threads.append(thread)
+        thread.start()
+
     try:
         print("Starting Flask application...")
         app.run(host='0.0.0.0', port=5000, debug=False)
-    except KeyboardInterrupt:
-        print("Stopping application (KeyboardInterrupt)...")
     except Exception as e:
-        print(f"An unexpected error occurred during application startup: {e}")
+        print(f"An unexpected error occurred: {e}")
     finally:
-        print("Attempting to stop all cameras...")
-        for cam_id in picam2_instances:
-            if picam2_instances[cam_id] is not None:
-                try:
-                    if picam2_instances[cam_id].started:
-                        picam2_instances[cam_id].stop()
-                        print(f"Camera {cam_id}: Successfully stopped.")
-                    else:
-                        print(f"Camera {cam_id}: Not started, no need to stop.")
-                except Exception as e:
-                    print(f"Error stopping camera {cam_id}: {e}")
-                picam2_instances[cam_id] = None # Clear the instance
+        print("Shutting down...")
+        # Graceful shutdown is handled by the daemon threads exiting when the main process stops
+        for cam_id in latest_camera_data:
+            if latest_camera_data[cam_id]["picam2"]:
+                latest_camera_data[cam_id]["picam2"].stop()
         print("All cameras stopped. Application exiting.")
 
 if __name__ == '__main__':

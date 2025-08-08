@@ -83,6 +83,12 @@ class NintendoProController:
             if stick_index in self.callbacks:
                 self.callbacks[stick_index](axes[stick_index])
 
+    def spin_once(self):
+        """
+        Run a single iteration of the controller loop, checking for button presses and analog movements.
+        """
+        self.run_callbacks()
+
     def run(self):
         """
         Main loop to keep the controller running and checking for inputs.
@@ -98,6 +104,7 @@ class NintendoProController:
 
     def is_pressed(self, value):
         return value > 0.5
+
 
 if __name__ == "__main__":
     controller = NintendoProController()

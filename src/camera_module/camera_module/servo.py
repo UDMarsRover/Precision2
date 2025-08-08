@@ -9,6 +9,7 @@ from collections import deque
 SERVO_PIN = 12
 MIN_PULSE = 500   # microseconds
 MAX_PULSE = 2500  # microseconds
+MIN_POSITION = -0.7  # New minimum position, as a percentage of the total range (-1.0 to 1.0)
 
 # The period for a 50Hz PWM signal is 20,000 microseconds
 PWM_PERIOD_US = 20000
@@ -36,7 +37,7 @@ class ServoNode(Node):
 
         # Initialize the moving average filter
         self.position_history = deque(maxlen=SMOOTHING_WINDOW_SIZE)
-        
+
         self.subscription = self.create_subscription(
             Float32,
             'servo_position',
@@ -71,11 +72,14 @@ class ServoNode(Node):
 
         # Calculate the average of the values in the window
         smoothed_data = sum(self.position_history) / len(self.position_history)
-        
+
+        # Enforce the new minimum position
+        smoothed_data = max(MIN_POSITION, smoothed_data)
+
         # Convert the smoothed data to a pulse width
         pulse_width = int(((smoothed_data + 1) / 2) * (MAX_PULSE - MIN_PULSE) + MIN_PULSE)
         pulse_width = max(MIN_PULSE, min(MAX_PULSE, pulse_width))
-        
+
         # Update the target pulse width only if there is a significant change
         if abs(pulse_width - self.last_pulse_width) > 10:
             self.target_pulse_width = pulse_width

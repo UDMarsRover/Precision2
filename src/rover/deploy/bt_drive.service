@@ -12,14 +12,14 @@ Type=simple
 RemainAfterExit=false
 
 # Use the full path for ExecStart for clarity and robustness.
-ExecStart=/home/udmrt/Precision2/src/rover/install/bt_drive.sh
+ExecStart=/home/udmrt/Precision2/src/rover/deploy/bt_drive.sh
 
 # User and Group are good practice to run the service with limited permissions.
 User=udmrt
 Group=udmrt
 
 # Set the working directory
-WorkingDirectory=/home/udmrt/Precision2/src/rover/install/
+WorkingDirectory=/home/udmrt/Precision2/src/rover/deploy/
 
 # Restart on any failure
 Restart=on-failure

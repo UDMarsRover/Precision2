@@ -57,10 +57,8 @@ class BTDrive:
         return left_velocity, right_velocity
         
 
-if __name__ == "__main__":
-    try:
-        bt_drive = BTDrive()
-    except KeyboardInterrupt:
-        print("Exiting...")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+def main(args=None):
+    bt_drive = BTDrive()
+
+if __name__ == '__main__':
+    main()

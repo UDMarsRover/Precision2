@@ -29,7 +29,6 @@ class BTDrive(Node):
         self.controller = NintendoProController()
         self.controller.add_analog_callback("LS_x", self.lsx_callback)
         self.controller.add_analog_callback("LS_y", self.lsy_callback)
-        self.controller.add_analog_callback("A", self.a_callback)
         
         self.right_velocity = 0.0
         self.left_velocity = 0.0
@@ -60,10 +59,6 @@ class BTDrive(Node):
     def lsx_callback(self, value):
         self.ls_received = True
         self.lsx_value = value
-        
-    def a_callback(self, value):
-        parsed_data = self.serial_conn.spin_once()
-        print(f"A button pressed, serial data: {parsed_data}")
 
     def calculate_velocities(self, x, y):
         self.get_logger().info(f"Calculating velocities: LS_x={x}, LS_y={y}")

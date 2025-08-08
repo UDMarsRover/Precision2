@@ -1,5 +1,5 @@
 from serial import SerialException
-from UDMRTMotorSerial import UDMRTMotorSerial
+from rover.drive.UDMRTMotorSerial import UDMRTMotorSerial
 import time
 import threading
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QSlider, QTableWidget, QTableWidgetItem

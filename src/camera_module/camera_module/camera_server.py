@@ -1,6 +1,6 @@
 # optimized_server.py
 
-from picamera2 import Picamera2, MappedArray
+from picamera2 import Picamera2
 import cv2
 from flask import Flask, Response, request
 import threading
@@ -32,16 +32,21 @@ DEFAULT_OUTPUT_SETTINGS = {
 }
 
 # Global state for each camera, including the latest frame and settings
+# Initialize with a blank frame to prevent the generator from failing on startup
+initial_frame = np.zeros((OUTPUT_RESOLUTIONS[DEFAULT_OUTPUT_SETTINGS["resolution"]][1],
+                          OUTPUT_RESOLUTIONS[DEFAULT_OUTPUT_SETTINGS["resolution"]][0],
+                          3), dtype=np.uint8)
+
 latest_camera_data = {
     0: {
-        "frame": None,
+        "frame": initial_frame,
         "lock": threading.Lock(),
         "output_res_str": DEFAULT_OUTPUT_SETTINGS["resolution"],
         "zoom_level": DEFAULT_OUTPUT_SETTINGS["zoom"],
         "picam2": None, # Picamera2 instance
     },
     1: {
-        "frame": None,
+        "frame": initial_frame,
         "lock": threading.Lock(),
         "output_res_str": DEFAULT_OUTPUT_SETTINGS["resolution"],
         "zoom_level": DEFAULT_OUTPUT_SETTINGS["zoom"],
@@ -56,6 +61,7 @@ def capture_and_process_frames(camera_id):
     This thread continuously runs and adapts to settings changes without restarting the camera.
     """
     print(f"Starting capture thread for camera {camera_id}...")
+    picam2 = None
     try:
         # Initialize and configure the camera instance once
         picam2 = Picamera2(camera_id)
@@ -70,7 +76,6 @@ def capture_and_process_frames(camera_id):
         
         # Calculate aspect ratio
         sensor_width, sensor_height = SENSOR_CAPTURE_RESOLUTION
-        sensor_aspect_ratio = sensor_width / sensor_height
 
         print(f"Camera {camera_id} sensor is configured to {sensor_width}x{sensor_height}. Entering capture loop.")
 
@@ -110,13 +115,20 @@ def capture_and_process_frames(camera_id):
             # Store the processed frame in the global state
             with latest_camera_data[camera_id]["lock"]:
                 latest_camera_data[camera_id]["frame"] = frame_array
+            
+            # A small delay to prevent the thread from consuming too much CPU.
+            time.sleep(0.01)
 
     except Exception as e:
-        print(f"Capture thread for camera {camera_id} encountered an error: {e}")
+        print(f"Capture thread for camera {camera_id} encountered a fatal error: {e}")
+        # Mark the instance as failed
+        latest_camera_data[camera_id]["picam2"] = None
+        # Add a delay before restarting to prevent a busy loop
+        time.sleep(5)
     finally:
         # Clean up the camera instance when the thread exits
-        if latest_camera_data[camera_id]["picam2"] and latest_camera_data[camera_id]["picam2"].started:
-            latest_camera_data[camera_id]["picam2"].stop()
+        if picam2 and picam2.started:
+            picam2.stop()
         print(f"Camera {camera_id}: Stopped due to thread exit.")
         latest_camera_data[camera_id]["picam2"] = None
 
@@ -139,9 +151,8 @@ def generate_frames(camera_id):
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
         
-        # A small delay here to prevent the streaming from consuming too much CPU on the Flask side
-        # The main frame rate is controlled by the capture thread
-        time.sleep(0.01)
+        # Adjust for a desired frame rate (e.g., 30fps)
+        time.sleep(1.0 / 30.0)
 
 # --- Flask Routes ---
 @app.route('/stream/<int:camera_id>')
@@ -152,6 +163,10 @@ def stream_feed(camera_id):
     """
     if camera_id not in latest_camera_data:
         return "Invalid camera ID. Use 0 or 1.", 400
+
+    # If the camera thread failed to start, inform the user.
+    if latest_camera_data[camera_id]["picam2"] is None:
+        return f"Camera {camera_id} is not available. Please check the logs.", 503
 
     requested_resolution = request.args.get('resolution', DEFAULT_OUTPUT_SETTINGS["resolution"]).lower()
     requested_zoom_str = request.args.get('zoom', str(DEFAULT_OUTPUT_SETTINGS["zoom"]))

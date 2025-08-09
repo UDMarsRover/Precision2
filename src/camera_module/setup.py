@@ -5,7 +5,11 @@ package_name = 'camera_module'
 setup(
     name=package_name,
     version='0.0.0',
-    packages=find_packages(exclude=['test']),
+    packages=[
+        'camera_module',
+        'camera_module.dynamixels',
+    ],
+    # packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),

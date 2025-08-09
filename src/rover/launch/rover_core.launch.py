@@ -9,9 +9,13 @@ def generate_launch_description():
                     executable="drive_node",
                     name="drive_node",
                  ),
+            # Node(package="camera_module",
+            #         executable="servo_node",
+            #         name="servo_node",
+            #      ),
             Node(package="camera_module",
-                    executable="servo_node",
-                    name="servo_node",
+                    executable="dynamixels.ros_dynamixel",
+                    name="dynamixel_node",
                  ),
         ]
     )

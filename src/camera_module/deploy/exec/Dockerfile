@@ -18,4 +18,4 @@ RUN colcon build
 
 # Source ROS 2 setup and run servo node
 # CMD ["sleep", "infinity"]
-ENTRYPOINT [ "bash", "-c", "source /opt/ros/humble/setup.bash && exec ros2 run camera camera_server.py" ]
+ENTRYPOINT [ "bash", "-c", "source /opt/ros/humble/setup.bash && source /workspace/install/setup.bash && exec ros2 run camera camera_server.py" ]

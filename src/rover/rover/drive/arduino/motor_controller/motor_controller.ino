@@ -30,7 +30,8 @@ enum UDMRT_status_modes {
 };
 
 enum UDMRT_control_modes {
-  set_velocity = 0x01
+  set_velocity = 0x01,
+  clear_faults = 0x04
 };
 
 // Heartbeat Frame
@@ -83,8 +84,9 @@ void loop() {
     listen_for_can_packet(1);
     if (Serial.available() >= PACKET_SIZE) {
         Serial.readBytes(reinterpret_cast<char*>(control_packet), PACKET_SIZE);
-
-        parseVelocitySetPacket(control_packet);
+        if(control_packet[0] == set_velocity) {
+            parseVelocitySetPacket(control_packet);
+        }
     }
 
     delay(50);  // Send every 20ms

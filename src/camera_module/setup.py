@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "servo_node = camera_module.servo_ros:main",
         ],
     },
 )

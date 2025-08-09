@@ -5,10 +5,13 @@ from launch_ros.actions import Node
 def generate_launch_description():
     return LaunchDescription(
         [
-            # Node(package="voxl_mpa_to_ros2",
-            #       executable="voxl_mpa_to_ros2_node",
-            #         name="voxl_mpa"),
-            # Node(package="starling", executable="circle-flight", name="starling_fc"), 
-            # Node(package="starling", executable="custom-pc-pub", name="starling_pc")
+            Node(package="rover",
+                    executable="drive_node",
+                    name="drive_node",
+                 ),
+            Node(package="camera_module",
+                    executable="servo_node",
+                    name="servo_node",
+                 ),
         ]
     )

@@ -27,6 +27,7 @@ setup(
         'console_scripts': [
             "motor_node = rover.motor_node:main",
             "bt_drive = rover.drive.bt_drive:main",
+            "drive_node = rover.drive.drive_ros_node:main",
         ],
     },
 )

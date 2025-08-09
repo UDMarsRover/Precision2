@@ -92,6 +92,13 @@ class UDMRTMotorSerial:
         return packet
     
     @staticmethod
+    def construct_clear_faults_packet() -> bytearray:
+        packet = bytearray()
+        packet.append(ControlMessage.CLEAR_FAULTS.value)
+        while len(packet) < 25:
+            packet.append(0x00)
+    
+    @staticmethod
     def construct_velocity_status_frame():
         frame = bytearray()
         for _ in range(6):
@@ -180,6 +187,10 @@ class UDMRTMotorSerial:
 
     def send_idle(self):
         packet = self.construct_idle_packet()
+        self.send_packet(packet)
+
+    def send_clear_faults(self):
+        packet = self.construct_clear_faults_packet()
         self.send_packet(packet)
 
     def read_packet(self):

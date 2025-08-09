@@ -14,7 +14,7 @@ def generate_launch_description():
             #         name="servo_node",
             #      ),
             Node(package="camera_module",
-                    executable="dynamixels.ros_dynamixel",
+                    executable="=dynamixel_node",
                     name="dynamixel_node",
                  ),
         ]

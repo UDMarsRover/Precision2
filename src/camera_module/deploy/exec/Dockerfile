@@ -14,6 +14,8 @@ RUN pip3 install -r /workspace/camera_module/requirements.txt || true
 
 
 ENV GPIOZERO_PIN_FACTORY=pigpio
+RUN colcon build
 
 # Source ROS 2 setup and run servo node
-CMD ["sleep", "infinity"]
+# CMD ["sleep", "infinity"]
+ENTRYPOINT [ "bash", "-c", "source /opt/ros/humble/setup.bash && exec ros2 run camera camera_server.py" ]

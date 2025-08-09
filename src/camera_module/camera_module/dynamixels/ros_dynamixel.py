@@ -3,7 +3,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32
 import time
 from collections import deque
-from control import DynamixelMX
+from camera_module.dynamixels.control import DynamixelMX
 
 # Constants for motor and smoothing
 # Replace with your specific motor settings

@@ -4,6 +4,7 @@ from flask import Flask, Response, request
 import threading
 import time
 import numpy as np
+import cv2.aruco as aruco
 
 # --- Global Configuration ---
 app = Flask(__name__)
@@ -53,10 +54,17 @@ latest_camera_data = {
     }
 }
 
+# --- ArUco Code Detection Configuration ---
+# Use the default dictionary provided by OpenCV.
+aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_6X6_250)
+aruco_params = aruco.DetectorParameters()
+aruco_detector = aruco.ArucoDetector(aruco_dict, aruco_params)
+
 # --- Camera Thread Functions ---
 def capture_and_process_frames(camera_id):
     """
     Dedicated thread for each camera to capture, process, and store frames.
+    This function has been modified to detect and highlight ArUco codes.
     """
     print(f"Starting capture thread for camera {camera_id}...")
     picam2 = None
@@ -97,29 +105,41 @@ def capture_and_process_frames(camera_id):
             output_width, output_height = OUTPUT_RESOLUTIONS[output_res_str]
 
             # --- Aspect Ratio-Correct Cropping for Zoom ---
-            # Calculate the aspect ratio of the desired output.
             target_aspect_ratio = output_width / output_height
-            
-            # Determine the cropped area dimensions based on the sensor and target aspect ratio.
             sensor_aspect_ratio = sensor_width / sensor_height
             
             if sensor_aspect_ratio > target_aspect_ratio:
-                # Sensor is wider than the target, so crop the width.
                 cropped_height = int(sensor_height / zoom_level)
                 cropped_width = int(cropped_height * target_aspect_ratio)
             else:
-                # Sensor is taller than the target, so crop the height.
                 cropped_width = int(sensor_width / zoom_level)
                 cropped_height = int(cropped_width / target_aspect_ratio)
 
-            # Calculate the top-left corner of the crop to center it on the sensor.
             start_x = (sensor_width - cropped_width) // 2
             start_y = (sensor_height - cropped_height) // 2
             
-            # Perform the crop.
             cropped_frame = full_frame[start_y:start_y + cropped_height,
                                        start_x:start_x + cropped_width]
             
+            # --- ArUco Code Detection and Highlighting ---
+            # Convert to grayscale for detection
+            gray_frame = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2GRAY)
+            # Detect ArUco markers
+            corners, ids, _ = aruco_detector.detectMarkers(gray_frame)
+            
+            if ids is not None:
+                # Draw detected markers and their IDs
+                aruco.drawDetectedMarkers(cropped_frame, corners, ids)
+                for i, corner in enumerate(corners):
+                    # Get the top-left corner of the Aruco code
+                    top_left_corner = tuple(corner[0][0].astype(int))
+                    # Get the ID and format the text
+                    aruco_id = ids[i][0]
+                    text = f"ID: {aruco_id}"
+                    # Put the text near the top-left corner
+                    cv2.putText(cropped_frame, text, top_left_corner,
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
+
             # --- Resize and Rotate ---
             processed_frame = cv2.resize(cropped_frame, (output_width, output_height), interpolation=cv2.INTER_AREA)
             processed_frame = cv2.rotate(processed_frame, cv2.ROTATE_90_CLOCKWISE)

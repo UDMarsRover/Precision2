@@ -125,7 +125,7 @@ def generate_frames(camera_id, aruco_enabled=False):
     # Initialize ArUco detector only once per generator
     if aruco_enabled:
         aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_6X6_250)
-        parameters = aruco.DetectorParameters_create()
+        parameters = aruco.DetectorParameters()
 
     while True:
         with latest_camera_data[camera_id]["lock"]:

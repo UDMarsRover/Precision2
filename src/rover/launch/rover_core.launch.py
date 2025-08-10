@@ -17,5 +17,9 @@ def generate_launch_description():
                     executable="dynamixel_node",
                     name="dynamixel_node",
                  ),
+            Node(package="rover",
+                    executable="gps_pub",
+                    name="gps_pub_node",
+                 ),
         ]
     )

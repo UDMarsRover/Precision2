@@ -1,7 +1,6 @@
 from setuptools import find_packages, setup
-import os
-from glob import glob
-package_name = 'rover'
+
+package_name = 'arm'
 
 setup(
     name=package_name,
@@ -11,10 +10,6 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        (
-            os.path.join("share", package_name, "launch"),
-            glob(os.path.join("launch", "*launch.[pxy][yma]*")),
-        ),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -25,10 +20,6 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "motor_node = rover.motor_node:main",
-            "bt_drive = rover.drive.bt_drive:main",
-            "drive_node = rover.drive.drive_ros_node:main",
-            "gps_pub = rover.gps_pub:main",
         ],
     },
 )

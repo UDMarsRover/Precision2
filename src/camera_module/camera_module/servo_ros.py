@@ -1,43 +1,42 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32
-import gpiod
-import threading
+import smbus2
 import time
 from collections import deque
 
-SERVO_PIN = 12
-MIN_PULSE = 800   # microseconds
-MAX_PULSE = 1988  # microseconds
+# --- I2C Constants ---
+# The I2C address of the Pi Pico slave device.
+# This must match the address defined in the Pico's sketch.
+I2C_SLAVE_ADDRESS = 8
 
-TRUE_CENTER = 1315  # Adjusted center pulse width in microseconds
+# The Raspberry Pi 3B+, 4, and later models use I2C bus 1.
+I2C_BUS_NUMBER = 1
 
-# The period for a 50Hz PWM signal is 20,000 microseconds
-PWM_PERIOD_US = 20000
+# --- Servo Constants ---
+# Min and Max angles of the servo in degrees
+MIN_ANGLE = 0
+MAX_ANGLE = 180
 
-# Moving average filter settings
+# --- Moving Average Filter Settings ---
 SMOOTHING_WINDOW_SIZE = 5
 
-class ServoNode(Node):
+class I2CServoNode(Node):
     def __init__(self):
-        super().__init__('servo_node')
+        super().__init__('i2c_servo_node')
 
-        # Initialize gpiod
+        # Initialize I2C bus
         try:
-            self.chip = gpiod.Chip('gpiochip0')
-            self.line = self.chip.get_line(SERVO_PIN)
-            self.line.request(consumer='servo-control', type=gpiod.LINE_REQ_DIR_OUT)
-            self.get_logger().info(f"Successfully configured GPIO pin {SERVO_PIN}.")
-        except Exception as e:
-            self.get_logger().error(f"Error configuring gpiod: {e}")
-            raise Exception("gpiod configuration failed")
-
-        self.target_pulse_width = 1500
-        self.last_pulse_width = self.target_pulse_width
-        self.thread_running = True
+            self.bus = smbus2.SMBus(I2C_BUS_NUMBER)
+            time.sleep(2)  # Give the bus time to initialize
+            self.get_logger().info(f"I2C bus {I2C_BUS_NUMBER} opened successfully.")
+        except FileNotFoundError:
+            self.get_logger().error("Error: I2C bus not found. Make sure I2C is enabled in raspi-config.")
+            raise Exception("I2C bus not found")
 
         # Initialize the moving average filter
         self.position_history = deque(maxlen=SMOOTHING_WINDOW_SIZE)
+        self.last_angle = 90  # Start at a neutral position
 
         self.subscription = self.create_subscription(
             Float32,
@@ -45,63 +44,53 @@ class ServoNode(Node):
             self.listener_callback,
             10
         )
-        self.get_logger().info(f"Servo node started. Listening on 'servo_position' topic.")
-
-        # Start a dedicated thread for software PWM
-        self.pwm_thread = threading.Thread(target=self.pwm_loop)
-        self.pwm_thread.start()
-
-    def pwm_loop(self):
-        while self.thread_running:
-            # Get the current pulse width
-            pulse_width = self.target_pulse_width
-
-            # High time is the pulse width
-            high_time_us = pulse_width
-            # Low time is the period minus the high time
-            low_time_us = PWM_PERIOD_US - high_time_us
-
-            # Perform the software PWM pulse
-            self.line.set_value(1)
-            time.sleep(high_time_us / 1000000.0)
-            self.line.set_value(0)
-            time.sleep(low_time_us / 1000000.0)
+        self.get_logger().info("I2C Servo Node started. Listening on 'servo_position' topic.")
 
     def listener_callback(self, msg):
+        # The input data is assumed to be a normalized value (e.g., -1 to 1) or a direct angle.
+        # This script expects a normalized value and converts it to a 0-180 degree angle.
+        # You may need to adjust this logic based on your specific ROS message data.
+        normalized_position = msg.data
+        
         # Add the new data to the smoothing window
-        self.position_history.append(msg.data)
+        self.position_history.append(normalized_position)
 
         # Calculate the average of the values in the window
         smoothed_data = sum(self.position_history) / len(self.position_history)
 
-        # Convert the smoothed data to a pulse width
-        pulse_width = int(((smoothed_data + 1) / 2) * (MAX_PULSE - MIN_PULSE) + MIN_PULSE)
-        pulse_delta = pulse_width - TRUE_CENTER
-        pulse_width = TRUE_CENTER + pulse_delta
-        pulse_width = max(MIN_PULSE, min(MAX_PULSE, pulse_width))
+        # Convert the smoothed normalized value (-1 to 1) to an angle (0 to 180)
+        # Assuming the incoming data is a normalized value from -1 to 1,
+        # where -1 maps to MIN_ANGLE and 1 maps to MAX_ANGLE.
+        angle = int(((smoothed_data + 1) / 2) * (MAX_ANGLE - MIN_ANGLE) + MIN_ANGLE)
         
+        # Constrain the angle to a valid range
+        angle = max(MIN_ANGLE, min(MAX_ANGLE, angle))
 
-        # Update the target pulse width only if there is a significant change
-        if abs(pulse_width - self.last_pulse_width) > 10:
-            self.target_pulse_width = pulse_width
-            self.last_pulse_width = pulse_width
-            self.get_logger().info(f"Smoothed position: {smoothed_data:.2f}, Set servo to pulse width: {pulse_width}us")
+        # Update the target angle only if there is a significant change
+        if abs(angle - self.last_angle) > 1: # A smaller delta (1 degree) is appropriate for I2C
+            try:
+                # The Pico expects two bytes for the angle.
+                # Convert the integer angle to two bytes using big-endian byte order.
+                data = angle.to_bytes(2, byteorder='big')
+                
+                # Write the command byte (0x00) and the two-byte angle data to the Pico.
+                self.bus.write_i2c_block_data(I2C_SLAVE_ADDRESS, 0x00, list(data))
+                
+                self.last_angle = angle
+                self.get_logger().info(f"Smoothed position: {smoothed_data:.2f}, Sent angle: {angle} degrees")
+            except Exception as e:
+                self.get_logger().error(f"Failed to send I2C data: {e}")
 
     def destroy_node(self):
-        # Stop the PWM thread
-        self.thread_running = False
-        self.pwm_thread.join()
-
-        # Clean up gpiod
-        self.line.set_value(0)
-        self.line.release()
-        self.chip.close()
-        self.get_logger().info("GPIO resources released.")
+        # Close the I2C bus when the program ends.
+        if hasattr(self, 'bus'):
+            self.bus.close()
+            self.get_logger().info("I2C bus closed.")
         super().destroy_node()
 
 def main(args=None):
     rclpy.init(args=args)
-    node = ServoNode()
+    node = I2CServoNode()
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:

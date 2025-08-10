@@ -20,12 +20,12 @@ class GPS_Publisher(Node):
         line = self.serial.readline()
         line_d = line.decode('ascii')
         try:
-            lat, lon, geiger = line_d.split(",")
+            lat, lon = line_d.split(",")
         except:
             pass
        
         if lat is not None and lon is not None:
-            msg.data = str(lat) + ", " + str(lon), + ". Geiger: " + str(geiger)
+            msg.data = str(lat) + ", " + str(lon)
             self.publisher_.publish(msg)
             self.get_logger().info('Lat, long: %s' % msg.data)
 
@@ -40,6 +40,7 @@ def main(args=None):
     ser.open()
    
     gps_pub = GPS_Publisher(ser)
+
     try:
         rclpy.spin(gps_pub)
     except Exception as e:
@@ -53,4 +54,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-

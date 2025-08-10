@@ -6,9 +6,9 @@ import threading
 import time
 import numpy as np
 
-# --- Global Configuration ---
 app = Flask(__name__)
 
+# Resolution presets
 OUTPUT_RESOLUTIONS = {
     "480p": (640, 480),
     "720p": (1280, 720),
@@ -18,6 +18,7 @@ OUTPUT_RESOLUTIONS = {
 
 ZOOM_LEVELS = [1.0, 1.5, 2.0, 3.0, 4.0]
 
+# Camera native resolutions
 RPI_CAM_3_WIDE_RES = (4608, 2592)
 RPI_HQ_CAM_RES = (4056, 3040)
 
@@ -28,6 +29,7 @@ DEFAULT_OUTPUT_SETTINGS = {
     "zoom": 1.0
 }
 
+# Shared camera data structure
 initial_output_res = OUTPUT_RESOLUTIONS[DEFAULT_OUTPUT_SETTINGS["resolution"]]
 initial_frame = np.zeros((initial_output_res[1], initial_output_res[0], 3), dtype=np.uint8)
 
@@ -48,7 +50,6 @@ latest_camera_data = {
     }
 }
 
-# --- Camera Thread Functions ---
 def capture_and_process_frames(camera_id):
     print(f"Starting capture thread for camera {camera_id}...")
     picam2 = None
@@ -75,20 +76,20 @@ def capture_and_process_frames(camera_id):
         latest_camera_data[camera_id]["picam2"] = picam2
         sensor_width, sensor_height = sensor_capture_resolution
 
-        print(f"Camera {camera_id} sensor is configured to {sensor_width}x{sensor_height}. Entering capture loop.")
+        print(f"Camera {camera_id} sensor configured to {sensor_width}x{sensor_height}. Starting capture loop.")
 
         while True:
             full_frame = picam2.capture_array()
-            
+
             with latest_camera_data[camera_id]["lock"]:
                 output_res_str = latest_camera_data[camera_id]["output_res_str"]
                 zoom_level = latest_camera_data[camera_id]["zoom_level"]
-            
+
             output_width, output_height = OUTPUT_RESOLUTIONS[output_res_str]
 
             target_aspect_ratio = output_width / output_height
             sensor_aspect_ratio = sensor_width / sensor_height
-            
+
             if sensor_aspect_ratio > target_aspect_ratio:
                 cropped_height = int(sensor_height / zoom_level)
                 cropped_width = int(cropped_height * target_aspect_ratio)
@@ -98,59 +99,63 @@ def capture_and_process_frames(camera_id):
 
             start_x = (sensor_width - cropped_width) // 2
             start_y = (sensor_height - cropped_height) // 2
-            
+
             cropped_frame = full_frame[start_y:start_y + cropped_height,
                                        start_x:start_x + cropped_width]
-            
+
             processed_frame = cv2.resize(cropped_frame, (output_width, output_height), interpolation=cv2.INTER_AREA)
             processed_frame = cv2.rotate(processed_frame, cv2.ROTATE_90_CLOCKWISE)
 
             with latest_camera_data[camera_id]["lock"]:
                 latest_camera_data[camera_id]["frame"] = processed_frame
-            
-            time.sleep(1.0/24.0)
+
+            time.sleep(1.0 / 24.0)
 
     except Exception as e:
-        print(f"Capture thread for camera {camera_id} encountered a fatal error: {e}")
+        print(f"Capture thread for camera {camera_id} error: {e}")
         latest_camera_data[camera_id]["picam2"] = None
         time.sleep(5)
     finally:
         if picam2 and picam2.started:
             picam2.stop()
-        print(f"Camera {camera_id}: Stopped due to thread exit.")
+        print(f"Camera {camera_id}: Thread exiting.")
         latest_camera_data[camera_id]["picam2"] = None
 
-# --- Streaming Generator ---
 def generate_frames(camera_id, aruco_enabled=False):
+    # Initialize ArUco detector only once per generator
     if aruco_enabled:
         aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_6X6_250)
-        parameters = aruco.DetectorParameters()
+        parameters = aruco.DetectorParameters_create()
 
     while True:
         with latest_camera_data[camera_id]["lock"]:
-            frame = latest_camera_data[camera_id]["frame"]
-        if frame is not None:
-            processed_frame = frame.copy()
+            frame = latest_camera_data[camera_id]["frame"].copy()
+        if frame is None:
+            time.sleep(0.1)
+            continue
 
-            if aruco_enabled:
-                gray = cv2.cvtColor(processed_frame, cv2.COLOR_BGR2GRAY)
-                corners, ids, rejected = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
-                processed_frame = aruco.drawDetectedMarkers(processed_frame, corners, ids)
+        if aruco_enabled:
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            corners, ids, _ = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+            if ids is not None and len(ids) > 0:
+                frame = aruco.drawDetectedMarkers(frame, corners, ids)
 
-            ret, buffer = cv2.imencode('.jpeg', processed_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
-            if not ret:
-                continue
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+        ret, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
+        if not ret:
+            time.sleep(0.1)
+            continue
+
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+
         time.sleep(1.0 / 15.0)
 
-# --- Routes ---
 @app.route('/stream/<int:camera_id>')
 def stream_feed(camera_id):
     if camera_id not in latest_camera_data:
         return "Invalid camera ID. Use 0 or 1.", 400
     if latest_camera_data[camera_id]["picam2"] is None:
-        return f"Camera {camera_id} is not available. Please check the logs.", 503
+        return f"Camera {camera_id} is not available.", 503
 
     requested_resolution = request.args.get('resolution', DEFAULT_OUTPUT_SETTINGS["resolution"]).lower()
     requested_zoom_str = request.args.get('zoom', str(DEFAULT_OUTPUT_SETTINGS["zoom"]))
@@ -158,7 +163,7 @@ def stream_feed(camera_id):
 
     if requested_resolution not in OUTPUT_RESOLUTIONS:
         return f"Invalid resolution. Choose from: {', '.join(OUTPUT_RESOLUTIONS.keys())}", 400
-    
+
     try:
         requested_zoom = float(requested_zoom_str)
         if requested_zoom not in ZOOM_LEVELS:
@@ -169,7 +174,7 @@ def stream_feed(camera_id):
     with latest_camera_data[camera_id]["lock"]:
         latest_camera_data[camera_id]["output_res_str"] = requested_resolution
         latest_camera_data[camera_id]["zoom_level"] = requested_zoom
-        print(f"Camera {camera_id}: Settings updated to Resolution={requested_resolution}, Zoom={requested_zoom}x, ArUco={aruco_enabled}")
+        print(f"Camera {camera_id} settings updated: Resolution={requested_resolution}, Zoom={requested_zoom}, ArUco={aruco_enabled}")
 
     return Response(generate_frames(camera_id, aruco_enabled),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
@@ -180,9 +185,9 @@ def root():
     zoom_list = ', '.join(map(str, ZOOM_LEVELS))
     return f"""
     <html>
-    <head><title>Pi Camera Stream API</title></head>
+    <head><title>Pi Camera Stream with ArUco</title></head>
     <body>
-        <h1>Pi Camera Stream API with ArUco Option</h1>
+        <h1>Pi Camera Stream API with ArUco Detection</h1>
         <p>Available resolutions: {res_list}</p>
         <p>Available zoom levels: {zoom_list}</p>
         <p>Normal stream: <a href="/stream/0?resolution=720p&zoom=1.0">/stream/0?resolution=720p&zoom=1.0</a></p>
@@ -194,22 +199,22 @@ def root():
 def main():
     camera_threads = []
     for i in range(len(latest_camera_data)):
-        thread = threading.Thread(target=capture_and_process_frames, args=(i,))
-        thread.daemon = True
-        camera_threads.append(thread)
-        thread.start()
+        t = threading.Thread(target=capture_and_process_frames, args=(i,))
+        t.daemon = True
+        camera_threads.append(t)
+        t.start()
 
     try:
-        print("Starting Flask application...")
+        print("Starting Flask app...")
         app.run(host='0.0.0.0', port=5000, debug=False)
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        print(f"Unexpected error: {e}")
     finally:
         print("Shutting down...")
         for cam_id in latest_camera_data:
             if latest_camera_data[cam_id]["picam2"]:
                 latest_camera_data[cam_id]["picam2"].stop()
-        print("All cameras stopped. Application exiting.")
+        print("All cameras stopped.")
 
 if __name__ == '__main__':
     main()

@@ -85,23 +85,40 @@ def capture_and_process_frames(camera_id):
                 output_res_str = latest_camera_data[camera_id]["output_res_str"]
                 zoom_level = latest_camera_data[camera_id]["zoom_level"]
 
-            output_width, output_height = OUTPUT_RESOLUTIONS[output_res_str]
+            # Output width presets
+            OUTPUT_WIDTHS = {
+                "480p": 640,
+                "720p": 1280,
+                "1080p": 1920,
+                "4k": 3840
+            }
+            output_width = OUTPUT_WIDTHS[output_res_str]
+            native_aspect = sensor_width / sensor_height
+            output_height = int(output_width / native_aspect)
 
-            target_aspect_ratio = output_width / output_height
-            sensor_aspect_ratio = sensor_width / sensor_height
+            # Calculate crop size based on zoom and native aspect ratio
+            crop_w = int(sensor_width / zoom_level)
+            crop_h = int(sensor_height / zoom_level)
+            crop_aspect = crop_w / crop_h
 
-            if sensor_aspect_ratio > target_aspect_ratio:
-                cropped_height = int(sensor_height / zoom_level)
-                cropped_width = int(cropped_height * target_aspect_ratio)
+            # Adjust crop to match native aspect ratio
+            if abs(crop_aspect - native_aspect) > 0.01:
+                # Crop width or height to match native aspect
+                if crop_aspect > native_aspect:
+                    new_crop_w = int(crop_h * native_aspect)
+                    new_crop_h = crop_h
+                else:
+                    new_crop_w = crop_w
+                    new_crop_h = int(crop_w / native_aspect)
             else:
-                cropped_width = int(sensor_width / zoom_level)
-                cropped_height = int(cropped_width / target_aspect_ratio)
+                new_crop_w = crop_w
+                new_crop_h = crop_h
 
-            start_x = (sensor_width - cropped_width) // 2
-            start_y = (sensor_height - cropped_height) // 2
+            start_x = (sensor_width - new_crop_w) // 2
+            start_y = (sensor_height - new_crop_h) // 2
 
-            cropped_frame = full_frame[start_y:start_y + cropped_height,
-                                       start_x:start_x + cropped_width]
+            cropped_frame = full_frame[start_y:start_y + new_crop_h,
+                                       start_x:start_x + new_crop_w]
 
             processed_frame = cv2.resize(cropped_frame, (output_width, output_height), interpolation=cv2.INTER_AREA)
             processed_frame = cv2.rotate(processed_frame, cv2.ROTATE_90_CLOCKWISE)
@@ -164,10 +181,13 @@ def stream_feed(camera_id):
     if requested_resolution not in OUTPUT_RESOLUTIONS:
         return f"Invalid resolution. Choose from: {', '.join(OUTPUT_RESOLUTIONS.keys())}", 400
 
+
     try:
         requested_zoom = float(requested_zoom_str)
-        if requested_zoom not in ZOOM_LEVELS:
-            return f"Invalid zoom level. Choose from: {', '.join(map(str, ZOOM_LEVELS))}", 400
+        zoom_min = min(ZOOM_LEVELS)
+        zoom_max = max(ZOOM_LEVELS)
+        if not (zoom_min <= requested_zoom <= zoom_max):
+            return f"Invalid zoom level. Must be between {zoom_min} and {zoom_max}.", 400
     except ValueError:
         return f"Invalid zoom value: '{requested_zoom_str}'. Must be a number.", 400
 

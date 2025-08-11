@@ -21,5 +21,9 @@ def generate_launch_description():
                     executable="gps_pub",
                     name="gps_pub_node",
                  ),
+            Node(package="rover",
+                    executable="arm_sub",
+                    name="arm_sub_node",
+                 ),
         ]
     )

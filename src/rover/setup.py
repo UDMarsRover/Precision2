@@ -29,6 +29,7 @@ setup(
             "bt_drive = rover.drive.bt_drive:main",
             "drive_node = rover.drive.drive_ros_node:main",
             "gps_pub = rover.gps_pub:main",
+            "arm_sub = rover.arm_sub:main",
         ],
     },
 )

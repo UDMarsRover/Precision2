@@ -1,7 +1,7 @@
 import pygame
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float32MultiArray, Float32, Bool
+from std_msgs.msg import Float32MultiArray, Float32, Bool, Int8
 import threading
 
 DRIVE_MODE = 0
@@ -19,6 +19,8 @@ class ControllerNode(Node):
         self.camera_yaw_pub = self.create_publisher(Float32, 'camera_yaw', 10)
 
         self.camera_center_pub = self.create_publisher(Bool, 'camera_center', 10)
+
+        self.hat_pub = self.create_publisher(Int8, 'arm_codes', 10)
 
         self.buttons = {
             "A": 0,
@@ -51,7 +53,7 @@ class ControllerNode(Node):
 
         self.right_velocity = 0.0
         self.left_velocity = 0.0
-        self.max_velocity = 250
+        self.max_velocity = 125
         self.ls_received = False
 
         # debounce mechanism
@@ -72,6 +74,7 @@ class ControllerNode(Node):
         self.add_axis_callback("RSY", self.rsy_callback)
         self.add_button_callback("START", self.start_callback)
         self.add_button_callback("BACK", self.back_callback)
+        self.add_hat_callback("X", self.x_hat_callback)  # Using Y-axis of the left stick as a hat
 
         self.joystick = pygame.joystick.Joystick(0)
         self.joystick.init()
@@ -128,6 +131,28 @@ class ControllerNode(Node):
         for hat_index in range(len(hats)):
             if hat_index in self.hat_callbacks:
                 self.hat_callbacks[hat_index](hats[hat_index])
+
+    def x_hat_callback(self, value):
+        """
+        Callback for the X-axis hat movement.
+        This can be used to control the camera yaw.
+        """
+        res = 0
+        hat_x, hat_y = value
+        if hat_x > 0:
+            res = 4
+        elif hat_x < 0:
+            res = 3
+        elif hat_y > 0:
+            res = 1
+        elif hat_y < 0:
+            res = 2
+        else:
+            res = 5
+
+        print(f"Hat value: {res}")
+        self.hat_pub.publish(Int8(data=res))
+
 
     def lsy_callback(self, value):
         # Only calculate velocities if lsc_callback has been called with a new value
@@ -211,7 +236,7 @@ class ControllerNode(Node):
         try:
             while True:
                 self.run_callbacks()
-                pygame.time.wait(100)  # Poll every 20ms
+                pygame.time.wait(100)  # Poll every 100ms
         except KeyboardInterrupt:
             print("Exiting...")
         finally:

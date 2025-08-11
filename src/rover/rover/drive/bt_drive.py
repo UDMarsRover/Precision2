@@ -26,6 +26,7 @@ class BTDrive(Node):
         self.controller.add_analog_callback("LS_y", self.lsy_callback)
         self.controller.add_button_callback("D_up", self.increment_mode)
         self.controller.add_button_callback("D_down", self.decrement_mode)
+        self.controller.add_button_callback("A", self.turbo_mode)
         self.get_logger().info("Controller setup complete.")
 
         # ROS 2 subscription
@@ -38,7 +39,6 @@ class BTDrive(Node):
         
         self.right_velocity = 0.0
         self.left_velocity = 0.0
-        self.max_velocity = 300
         self.ls_received = False
         self.lrc_active = False
 
@@ -47,6 +47,8 @@ class BTDrive(Node):
 
         self.mode = 0
         self.max_vels = [200, 400, 600, 800, 1000]
+        self.max_velocity = self.max_vels[self.mode]
+
 
     def setup_controller(self):
         """
@@ -61,6 +63,15 @@ class BTDrive(Node):
             except Exception as e:
                 self.get_logger().info(f"Failed to initialize controller: {e}. Retrying in 3 seconds...")
                 time.sleep(3)
+    
+    def turbo_mode(self, value):
+        """
+        Activate turbo mode by setting the maximum velocity to a higher value.
+        """
+        if value > 0:
+            self.get_logger().info("Activating turbo mode")
+            self.max_velocity = 500
+    
     def increment_mode(self, value):
         """
         Increment the mode and update the maximum velocities accordingly.

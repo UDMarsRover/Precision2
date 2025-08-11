@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Bool
 import smbus2
 import time
 from collections import deque
@@ -35,7 +35,7 @@ class I2CServoNode(Node):
             raise Exception("I2C bus not found")
 
         # Initialize the moving average filter
-        self.position_history = deque(maxlen=SMOOTHING_WINDOW_SIZE)
+        # self.position_history = deque(maxlen=SMOOTHING_WINDOW_SIZE)
         self.last_angle = 90  # Start at a neutral position
 
         self.subscription = self.create_subscription(
@@ -44,7 +44,19 @@ class I2CServoNode(Node):
             self.listener_callback,
             10
         )
+        # self.camera_center_pub = self.create_publisher(Bool, 'camera_center', 10)
+        self.camera_center_sub = self.create_subscription(
+            Bool,
+            'camera_center',
+            self.camera_center_callback,
+            10
+        )
         self.get_logger().info("I2C Servo Node started. Listening on 'servo_position' topic.")
+
+    def camera_center_callback(self, msg):
+        if msg.data:
+            self.get_logger().info("Camera center command received. Resetting servo position to 90 degrees.")
+            self.last_angle = 90
 
     def listener_callback(self, msg):
         # The input data is assumed to be a normalized value (e.g., -1 to 1) or a direct angle.
@@ -53,33 +65,27 @@ class I2CServoNode(Node):
         normalized_position = msg.data
         
         # Add the new data to the smoothing window
-        self.position_history.append(normalized_position)
 
         # Calculate the average of the values in the window
-        smoothed_data = sum(self.position_history) / len(self.position_history)
 
         # Convert the smoothed normalized value (-1 to 1) to an angle (0 to 180)
         # Assuming the incoming data is a normalized value from -1 to 1,
         # where -1 maps to MIN_ANGLE and 1 maps to MAX_ANGLE.
-        angle = int(((smoothed_data + 1) / 2) * (MAX_ANGLE - MIN_ANGLE) + MIN_ANGLE)
-        
+        angle = self.last_angle + normalized_position
         # Constrain the angle to a valid range
         angle = max(MIN_ANGLE, min(MAX_ANGLE, angle))
 
-        # Update the target angle only if there is a significant change
-        if abs(angle - self.last_angle) > 1: # A smaller delta (1 degree) is appropriate for I2C
-            try:
-                # The Pico expects two bytes for the angle.
-                # Convert the integer angle to two bytes using big-endian byte order.
-                data = angle.to_bytes(2, byteorder='big')
-                
-                # Write the command byte (0x00) and the two-byte angle data to the Pico.
-                self.bus.write_i2c_block_data(I2C_SLAVE_ADDRESS, 0x00, list(data))
-                
-                self.last_angle = angle
-                self.get_logger().info(f"Smoothed position: {smoothed_data:.2f}, Sent angle: {angle} degrees")
-            except Exception as e:
-                self.get_logger().error(f"Failed to send I2C data: {e}")
+        try:
+            # The Pico expects two bytes for the angle.
+            # Convert the integer angle to two bytes using big-endian byte order.
+            data = angle.to_bytes(2, byteorder='big')
+            
+            # Write the command byte (0x00) and the two-byte angle data to the Pico.
+            self.bus.write_i2c_block_data(I2C_SLAVE_ADDRESS, 0x00, list(data))
+            
+            self.last_angle = angle
+        except Exception as e:
+            self.get_logger().error(f"Failed to send I2C data: {e}")
 
     def destroy_node(self):
         # Close the I2C bus when the program ends.

@@ -64,8 +64,10 @@ class NintendoProController:
     def run_callbacks(self):
         pygame.event.pump()
         buttons = [self.joystick.get_button(i) for i in range(self.joystick.get_numbuttons())]
+        print(buttons)
         axes = [self.joystick.get_axis(i) for i in range(self.joystick.get_numaxes())]
-
+        print(axes)
+        # Call button callbacks
         for button_index, value in enumerate(buttons):
             if button_index in self.button_callbacks:
                 self.button_callbacks[button_index](value)

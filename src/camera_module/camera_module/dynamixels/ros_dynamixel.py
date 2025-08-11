@@ -66,7 +66,7 @@ class DynamixelMotorNode(Node):
         
         # Write the new goal position to the motor
         # Dynamixel positions are typically integers, so we convert the float to int
-        mapped_position = int(self.current_position + (msg.data * 100))
+        mapped_position = int(self.current_position - (msg.data * 200))
         if mapped_position < self.min_pos:
             mapped_position = self.min_pos
         elif mapped_position > self.max_pos:

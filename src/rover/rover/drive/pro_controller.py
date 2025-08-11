@@ -73,18 +73,27 @@ class NintendoProController:
         
     def run_callbacks(self):
         """
-        Poll the joystick and run callbacks for pressed buttons.
+        Poll the joystick and run callbacks for pressed buttons and analog sticks.
         """
         pygame.event.pump()
         buttons = [self.joystick.get_button(i) for i in range(self.joystick.get_numbuttons())]
         axes = [self.joystick.get_axis(i) for i in range(self.joystick.get_numaxes())]
+        
+        # Run button callbacks
         for button_index in range(len(buttons)):
             if buttons[button_index] and button_index in self.button_callbacks:
-                self.button_callbacks[button_index](buttons[button_index])
+                try:
+                    self.button_callbacks[button_index](buttons[button_index])
+                except Exception as e:
+                    print(f"Button callback error: {e}")
 
+        # Run analog callbacks (always run, even if button callback raised)
         for stick_index in range(len(axes)):
             if stick_index in self.analog_callbacks:
-                self.analog_callbacks[stick_index](axes[stick_index])
+                try:
+                    self.analog_callbacks[stick_index](axes[stick_index])
+                except Exception as e:
+                    print(f"Analog callback error: {e}")
 
     def spin_once(self):
         """

@@ -78,7 +78,7 @@ class I2CServoNode(Node):
         try:
             # The Pico expects two bytes for the angle.
             # Convert the integer angle to two bytes using big-endian byte order.
-            data = angle.to_bytes(2, byteorder='big')
+            data = int(angle).to_bytes(2, byteorder='big')
             
             # Write the command byte (0x00) and the two-byte angle data to the Pico.
             self.bus.write_i2c_block_data(I2C_SLAVE_ADDRESS, 0x00, list(data))

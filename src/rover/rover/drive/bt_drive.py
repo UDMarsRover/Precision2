@@ -42,6 +42,9 @@ class BTDrive(Node):
         self.ls_received = False
         self.lrc_active = False
 
+        self.last_a = 0
+        self.last_b = 0
+
         self.mode = 0
         self.max_vels = [200, 400, 600, 800, 1000]
 
@@ -62,21 +65,22 @@ class BTDrive(Node):
         """
         Increment the mode and update the maximum velocities accordingly.
         """
-        if value > 0:
+        if value > 0 and self.last_a != value:
             self.get_logger().info("Incrementing mode")
             self.mode = (self.mode + 1) % len(self.max_vels)
             self.max_velocity = self.max_vels[self.mode]
             self.get_logger().info(f"Mode changed to {self.mode}, max velocity set to {self.max_velocity}")
+            self.last_a = value 
 
     def decrement_mode(self, value):
         """
         Decrement the mode and update the maximum velocities accordingly.
         """
-        if value > 0:
-            self.get_logger().info("Decrementing mode")
+        if value > 0 and self.last_b != value:
             self.mode = (self.mode - 1) % len(self.max_vels)
             self.max_velocity = self.max_vels[self.mode]
             self.get_logger().info(f"Mode changed to {self.mode}, max velocity set to {self.max_velocity}")
+            self.last_b = value
 
     def control_callback(self, msg):
         self.get_logger().info("LRC active, shutting down bluetooth controller")

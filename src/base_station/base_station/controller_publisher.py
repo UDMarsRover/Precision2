@@ -1,7 +1,7 @@
 import pygame
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float32MultiArray, Float32
+from std_msgs.msg import Float32MultiArray, Float32, Bool
 import threading
 
 DRIVE_MODE = 0
@@ -17,6 +17,8 @@ class ControllerNode(Node):
         self.servo_pub = self.create_publisher(Float32, 'servo_position', 10)
 
         self.camera_yaw_pub = self.create_publisher(Float32, 'camera_yaw', 10)
+
+        self.camera_center_pub = self.create_publisher(Bool, 'camera_center', 10)
 
         self.buttons = {
             "A": 0,
@@ -69,6 +71,7 @@ class ControllerNode(Node):
         self.add_axis_callback("RSX", self.rsx_callback)
         self.add_axis_callback("RSY", self.rsy_callback)
         self.add_button_callback("START", self.start_callback)
+        self.add_button_callback("BACK", self.back_callback)
 
         self.joystick = pygame.joystick.Joystick(0)
         self.joystick.init()
@@ -145,6 +148,7 @@ class ControllerNode(Node):
             self.lsx_value = value
 
     def rsy_callback(self, value):
+        # print(f"RS_y value: {value}")
         self.servo_pub.publish(Float32(data=value))
 
     def calculate_velocities(self, x, y):
@@ -184,8 +188,21 @@ class ControllerNode(Node):
         Callback for the right stick x-axis movement.
         Publishes the value to the 'camera_yaw' topic.
         """
+        # print(f"X-axis: {value}")
         self.camera_yaw_pub.publish(Float32(data=value))
         # print(f"Camera yaw set to: {value}")
+
+    def back_callback(self, value):
+        """
+        Callback for the back button press.
+        This can be used to reset or perform any other action.
+        """
+        # print(f"Back button pressed with value: {value}")
+        if value > 0.5:
+            self.get_logger().info("Back button pressed. Performing reset action.")
+            # Implement reset logic here if needed
+            self.camera_center_pub.publish(Bool(data=True))
+
 
     def run(self):
         """

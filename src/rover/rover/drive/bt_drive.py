@@ -24,8 +24,8 @@ class BTDrive(Node):
         # The rest of __init__ is unchanged as it only runs if the controller is ready.
         self.controller.add_analog_callback("LS_x", self.lsx_callback)
         self.controller.add_analog_callback("LS_y", self.lsy_callback)
-        self.controller.add_button_callback("plus", self.increment_mode)
-        self.controller.add_button_callback("minus", self.decrement_mode)
+        self.controller.add_button_callback("A", self.increment_mode)
+        self.controller.add_button_callback("B", self.decrement_mode)
         self.get_logger().info("Controller setup complete.")
 
         # ROS 2 subscription

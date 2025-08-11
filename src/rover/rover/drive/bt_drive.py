@@ -71,6 +71,9 @@ class BTDrive(Node):
         if value > 0:
             self.get_logger().info("Activating turbo mode")
             self.max_velocity = 500
+        else:
+            self.get_logger().info("Deactivating turbo mode")
+            self.max_velocity = self.max_vels[self.mode]
     
     def increment_mode(self, value):
         """

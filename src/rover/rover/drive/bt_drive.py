@@ -58,21 +58,25 @@ class BTDrive(Node):
             except Exception as e:
                 self.get_logger().info(f"Failed to initialize controller: {e}. Retrying in 3 seconds...")
                 time.sleep(3)
-    def increment_mode(self):
+    def increment_mode(self, value):
         """
         Increment the mode and update the maximum velocities accordingly.
         """
-        self.mode = (self.mode + 1) % len(self.max_vels)
-        self.max_velocity = self.max_vels[self.mode]
-        self.get_logger().info(f"Mode changed to {self.mode}, max velocity set to {self.max_velocity}")
+        if value > 0:
+            self.get_logger().info("Incrementing mode")
+            self.mode = (self.mode + 1) % len(self.max_vels)
+            self.max_velocity = self.max_vels[self.mode]
+            self.get_logger().info(f"Mode changed to {self.mode}, max velocity set to {self.max_velocity}")
 
-    def decrement_mode(self):
+    def decrement_mode(self, value):
         """
         Decrement the mode and update the maximum velocities accordingly.
         """
-        self.mode = (self.mode - 1) % len(self.max_vels)
-        self.max_velocity = self.max_vels[self.mode]
-        self.get_logger().info(f"Mode changed to {self.mode}, max velocity set to {self.max_velocity}")
+        if value > 0:
+            self.get_logger().info("Decrementing mode")
+            self.mode = (self.mode - 1) % len(self.max_vels)
+            self.max_velocity = self.max_vels[self.mode]
+            self.get_logger().info(f"Mode changed to {self.mode}, max velocity set to {self.max_velocity}")
 
     def control_callback(self, msg):
         self.get_logger().info("LRC active, shutting down bluetooth controller")

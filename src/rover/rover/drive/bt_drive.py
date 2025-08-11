@@ -26,7 +26,7 @@ class BTDrive(Node):
         self.controller.add_analog_callback("LS_y", self.lsy_callback)
         # self.controller.add_button_callback("D_up", self.increment_mode)
         # self.controller.add_button_callback("D_down", self.decrement_mode)
-        # self.controller.add_button_callback("A", self.turbo_mode)
+        self.controller.add_button_callback("A", self.turbo_mode)
         self.get_logger().info("Controller setup complete.")
 
         # ROS 2 subscription

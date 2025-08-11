@@ -31,7 +31,8 @@ class NintendoProController:
             "ZL": 4,
             "ZR": 5
         }
-        self.callbacks = {}
+        self.button_callbacks = {}
+        self.analog_callbacks = {}
         pygame.init()
         pygame.joystick.init()
 
@@ -55,7 +56,7 @@ class NintendoProController:
         :param callback: Function to call when the button is pressed.
         """
         if button_name in self.buttons:
-            self.callbacks[self.buttons[button_name]] = callback
+            self.button_callbacks[self.buttons[button_name]] = callback
         else:
             raise ValueError(f"Button {button_name} not found in controller.")
         
@@ -66,7 +67,7 @@ class NintendoProController:
         :param callback: Function to call when the stick is moved.
         """
         if stick_name in self.analogs:
-            self.callbacks[self.analogs[stick_name]] = callback
+            self.analog_callbacks[self.analogs[stick_name]] = callback
         else:
             raise ValueError(f"Analog stick {stick_name} not found in controller.")
         
@@ -78,12 +79,12 @@ class NintendoProController:
         buttons = [self.joystick.get_button(i) for i in range(self.joystick.get_numbuttons())]
         axes = [self.joystick.get_axis(i) for i in range(self.joystick.get_numaxes())]
         for button_index in range(len(buttons)):
-            if buttons[button_index] and button_index in self.callbacks:
-                self.callbacks[button_index](buttons[button_index])
+            if buttons[button_index] and button_index in self.button_callbacks:
+                self.button_callbacks[button_index](buttons[button_index])
 
         for stick_index in range(len(axes)):
-            if stick_index in self.callbacks:
-                self.callbacks[stick_index](axes[stick_index])
+            if stick_index in self.analog_callbacks:
+                self.analog_callbacks[stick_index](axes[stick_index])
 
     def spin_once(self):
         """

@@ -30,8 +30,10 @@ def main(args=None):
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
+        node.get_logger().info("Keyboard interrupt received, shutting down.")
         pass
     finally:
+        node.get_logger().info("Destroying node and closing serial port.")
         node.destroy_node()
         rclpy.shutdown()
 

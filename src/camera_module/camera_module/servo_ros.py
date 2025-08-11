@@ -72,7 +72,7 @@ class I2CServoNode(Node):
         # Convert the smoothed normalized value (-1 to 1) to an angle (0 to 180)
         # Assuming the incoming data is a normalized value from -1 to 1,
         # where -1 maps to MIN_ANGLE and 1 maps to MAX_ANGLE.
-        angle = self.last_angle + normalized_position
+        angle = self.last_angle + normalized_position * 5
         # Constrain the angle to a valid range
         angle = max(MIN_ANGLE, min(MAX_ANGLE, angle))
 

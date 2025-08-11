@@ -37,6 +37,7 @@ class I2CServoNode(Node):
         # Initialize the moving average filter
         # self.position_history = deque(maxlen=SMOOTHING_WINDOW_SIZE)
         self.last_angle = 90  # Start at a neutral position
+        self.last_sent_angle = 90
 
         self.subscription = self.create_subscription(
             Float32,
@@ -78,11 +79,13 @@ class I2CServoNode(Node):
         try:
             # The Pico expects two bytes for the angle.
             # Convert the integer angle to two bytes using big-endian byte order.
-            data = int(angle).to_bytes(2, byteorder='big')
+            if abs(angle - self.last_sent_angle) > 1:
+                # If the angle hasn't changed significantly, skip sending to avoid jitter.
+                data = int(angle).to_bytes(2, byteorder='big')
             
             # Write the command byte (0x00) and the two-byte angle data to the Pico.
-            self.bus.write_i2c_block_data(I2C_SLAVE_ADDRESS, 0x00, list(data))
-            
+                self.bus.write_i2c_block_data(I2C_SLAVE_ADDRESS, 0x00, list(data))
+                self.last_sent_angle = angle
             self.last_angle = angle
         except Exception as e:
             self.get_logger().error(f"Failed to send I2C data: {e}")

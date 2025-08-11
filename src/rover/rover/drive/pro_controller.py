@@ -31,9 +31,7 @@ class NintendoProController:
             "ZL": 4,
             "ZR": 5
         }
-        self.button_callbacks = {}
-        self.analog_callbacks = {}
-        self.last_button_states = {}  # Track previous button states
+        self.callbacks = {}
         pygame.init()
         pygame.joystick.init()
 
@@ -45,9 +43,6 @@ class NintendoProController:
 
         self.joystick = pygame.joystick.Joystick(0)
         self.joystick.init()
-        # Initialize last_button_states for all buttons
-        for idx in range(self.joystick.get_numbuttons()):
-            self.last_button_states[idx] = 0
 
     def kill(self):
         pygame.quit()
@@ -60,7 +55,7 @@ class NintendoProController:
         :param callback: Function to call when the button is pressed.
         """
         if button_name in self.buttons:
-            self.button_callbacks[self.buttons[button_name]] = callback
+            self.callbacks[self.buttons[button_name]] = callback
         else:
             raise ValueError(f"Button {button_name} not found in controller.")
         
@@ -71,37 +66,24 @@ class NintendoProController:
         :param callback: Function to call when the stick is moved.
         """
         if stick_name in self.analogs:
-            self.analog_callbacks[self.analogs[stick_name]] = callback
+            self.callbacks[self.analogs[stick_name]] = callback
         else:
             raise ValueError(f"Analog stick {stick_name} not found in controller.")
         
     def run_callbacks(self):
         """
-        Poll the joystick and run callbacks for pressed buttons and analog sticks.
-        Only call button callbacks on rising edge (transition from not pressed to pressed).
+        Poll the joystick and run callbacks for pressed buttons.
         """
         pygame.event.pump()
         buttons = [self.joystick.get_button(i) for i in range(self.joystick.get_numbuttons())]
         axes = [self.joystick.get_axis(i) for i in range(self.joystick.get_numaxes())]
-        
-        # Run button callbacks on rising edge
         for button_index in range(len(buttons)):
-            prev = self.last_button_states.get(button_index, 0)
-            curr = buttons[button_index]
-            if curr and not prev and button_index in self.button_callbacks:
-                try:
-                    self.button_callbacks[button_index](curr)
-                except Exception as e:
-                    print(f"Button callback error: {e}")
-            self.last_button_states[button_index] = curr
+            if buttons[button_index] and button_index in self.callbacks:
+                self.callbacks[button_index](buttons[button_index])
 
-        # Run analog callbacks (always run, even if button callback raised)
         for stick_index in range(len(axes)):
-            if stick_index in self.analog_callbacks:
-                try:
-                    self.analog_callbacks[stick_index](axes[stick_index])
-                except Exception as e:
-                    print(f"Analog callback error: {e}")
+            if stick_index in self.callbacks:
+                self.callbacks[stick_index](axes[stick_index])
 
     def spin_once(self):
         """

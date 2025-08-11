@@ -31,7 +31,8 @@ class NintendoProController:
             "ZL": 4,
             "ZR": 5
         }
-        self.callbacks = {}
+        self.button_callbacks = {}
+        self.analog_callbacks = {}
         pygame.init()
         pygame.joystick.init()
 
@@ -49,56 +50,38 @@ class NintendoProController:
         raise SystemExit
 
     def add_button_callback(self, button_name, callback):
-        """
-        Add a callback function for a specific button press.
-        :param button_name: Name of the button to listen for.
-        :param callback: Function to call when the button is pressed.
-        """
         if button_name in self.buttons:
-            self.callbacks[self.buttons[button_name]] = callback
+            self.button_callbacks[self.buttons[button_name]] = callback
         else:
             raise ValueError(f"Button {button_name} not found in controller.")
         
     def add_analog_callback(self, stick_name, callback):
-        """
-        Add a callback function for an analog stick movement.
-        :param stick_name: Name of the analog stick to listen for.
-        :param callback: Function to call when the stick is moved.
-        """
         if stick_name in self.analogs:
-            self.callbacks[self.analogs[stick_name]] = callback
+            self.analog_callbacks[self.analogs[stick_name]] = callback
         else:
             raise ValueError(f"Analog stick {stick_name} not found in controller.")
         
     def run_callbacks(self):
-        """
-        Poll the joystick and run callbacks for pressed buttons.
-        """
         pygame.event.pump()
         buttons = [self.joystick.get_button(i) for i in range(self.joystick.get_numbuttons())]
         axes = [self.joystick.get_axis(i) for i in range(self.joystick.get_numaxes())]
-        # for button_index in range(len(buttons)):
-        #     if buttons[button_index] and button_index in self.callbacks:
-        #         self.callbacks[button_index](buttons[button_index])
 
-        for stick_index in range(len(axes)):
-            if stick_index in self.callbacks:
-                self.callbacks[stick_index](axes[stick_index])
+        for button_index, value in enumerate(buttons):
+            if button_index in self.button_callbacks:
+                self.button_callbacks[button_index](value)
+
+        for stick_index, value in enumerate(axes):
+            if stick_index in self.analog_callbacks:
+                self.analog_callbacks[stick_index](value)
 
     def spin_once(self):
-        """
-        Run a single iteration of the controller loop, checking for button presses and analog movements.
-        """
         self.run_callbacks()
 
     def run(self):
-        """
-        Main loop to keep the controller running and checking for inputs.
-        """
         try:
             while True:
                 self.run_callbacks()
-                pygame.time.wait(50)  # Poll every 50ms
+                pygame.time.wait(50)
         except KeyboardInterrupt:
             print("Exiting...")
         finally:
@@ -111,7 +94,6 @@ class NintendoProController:
 if __name__ == "__main__":
     controller = NintendoProController()
     
-    # Example callback functions
     def on_a_pressed(value):
         if controller.is_pressed(value):
             print("A button pressed!")
@@ -119,10 +101,7 @@ if __name__ == "__main__":
     def zl_value(value):
         print(f"ZL value: {value}")
 
-    # Register callbacks
-    # controller.add_button_callback("A", on_a_pressed)
+    controller.add_button_callback("A", on_a_pressed)
     controller.add_analog_callback("LS_x", zl_value)
-    # controller.add_analog_callback("LS_x", on_ls_moved)
 
-    # Run the controller loop
     controller.run()

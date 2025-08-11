@@ -77,9 +77,9 @@ class NintendoProController:
         pygame.event.pump()
         buttons = [self.joystick.get_button(i) for i in range(self.joystick.get_numbuttons())]
         axes = [self.joystick.get_axis(i) for i in range(self.joystick.get_numaxes())]
-        for button_index in range(len(buttons)):
-            if buttons[button_index] and button_index in self.callbacks:
-                self.callbacks[button_index](buttons[button_index])
+        # for button_index in range(len(buttons)):
+        #     if buttons[button_index] and button_index in self.callbacks:
+        #         self.callbacks[button_index](buttons[button_index])
 
         for stick_index in range(len(axes)):
             if stick_index in self.callbacks:

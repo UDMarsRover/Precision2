@@ -24,8 +24,7 @@ class BTDrive(Node):
         # The rest of __init__ is unchanged as it only runs if the controller is ready.
         self.controller.add_analog_callback("LS_x", self.lsx_callback)
         self.controller.add_analog_callback("LS_y", self.lsy_callback)
-        # self.controller.add_button_callback("D_up", self.increment_mode)
-        # self.controller.add_button_callback("D_down", self.decrement_mode)
+
         self.controller.add_button_callback("A", self.turbo_mode)
         self.get_logger().info("Controller setup complete.")
 
@@ -39,16 +38,9 @@ class BTDrive(Node):
         
         self.right_velocity = 0.0
         self.left_velocity = 0.0
+        self.max_velocity = 300
         self.ls_received = False
         self.lrc_active = False
-
-        self.last_a = 0
-        self.last_b = 0
-
-        self.mode = 0
-        self.max_vels = [200, 400, 600, 800, 1000]
-        self.max_velocity = self.max_vels[self.mode]
-
 
     def setup_controller(self):
         """
@@ -63,38 +55,6 @@ class BTDrive(Node):
             except Exception as e:
                 self.get_logger().info(f"Failed to initialize controller: {e}. Retrying in 3 seconds...")
                 time.sleep(3)
-    
-    def turbo_mode(self, value):
-        """
-        Activate turbo mode by setting the maximum velocity to a higher value.
-        """
-        if value > 0:
-            self.get_logger().info("Activating turbo mode")
-            self.max_velocity = 500
-        else:
-            self.get_logger().info("Deactivating turbo mode")
-            self.max_velocity = self.max_vels[self.mode]
-    
-    def increment_mode(self, value):
-        """
-        Increment the mode and update the maximum velocities accordingly.
-        """
-        if value > 0 and self.last_a != value:
-            self.get_logger().info("Incrementing mode")
-            self.mode = (self.mode + 1) % len(self.max_vels)
-            self.max_velocity = self.max_vels[self.mode]
-            self.get_logger().info(f"Mode changed to {self.mode}, max velocity set to {self.max_velocity}")
-            self.last_a = value 
-
-    def decrement_mode(self, value):
-        """
-        Decrement the mode and update the maximum velocities accordingly.
-        """
-        if value > 0 and self.last_b != value:
-            self.mode = (self.mode - 1) % len(self.max_vels)
-            self.max_velocity = self.max_vels[self.mode]
-            self.get_logger().info(f"Mode changed to {self.mode}, max velocity set to {self.max_velocity}")
-            self.last_b = value
 
     def control_callback(self, msg):
         self.get_logger().info("LRC active, shutting down bluetooth controller")
@@ -122,6 +82,12 @@ class BTDrive(Node):
         right_velocity = max(min(right_velocity, self.max_velocity), -self.max_velocity)
         self.get_logger().info(f"Calculated velocities: Left: {left_velocity}, Right: {right_velocity}")
         return left_velocity, right_velocity
+    
+    def turbo_mode(self, value):
+        if value < 1:
+            return
+        else:
+            print("Activating turbo mode")
 
 def main(args=None):
     rclpy.init(args=args)
@@ -145,6 +111,7 @@ def main(args=None):
                 break
 
             time.sleep(0.01)
+
             
     except KeyboardInterrupt:
         if bt_drive:

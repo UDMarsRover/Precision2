@@ -1,6 +1,6 @@
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Bool
 import time
 from collections import deque
 from camera_module.dynamixels.control import DynamixelMX
@@ -41,6 +41,13 @@ class DynamixelMotorNode(Node):
             self.listener_callback,
             10
         )
+
+        self.camera_center_sub = self.create_subscription(
+            Bool,
+            'camera_center',
+            self.camera_center_callback,
+            10
+        )
         self.get_logger().info("Dynamixel motor node is ready. Waiting for messages on 'camera_yaw' topic.")
 
     def listener_callback(self, msg):
@@ -67,6 +74,16 @@ class DynamixelMotorNode(Node):
         self.motor.write_goal_position(int(mapped_position))
         self.current_position = mapped_position
         # self.get_logger().info(f"Received: {msg.data:.2f}, Smoothed: {clamped_data:.2f}, Set position to: {int(mapped_position)}")
+
+    def camera_center_callback(self, msg):
+        """
+        Callback function for the camera center command.
+        Resets the motor position to the center when the command is received.
+        """
+        if msg.data:
+            self.get_logger().info("Camera center command received. Resetting motor position to center.")
+            self.current_position = TRUE_CENTER
+            self.motor.write_goal_position(self.current_position)
 
     def destroy_node(self):
         """

@@ -33,6 +33,7 @@ class NintendoProController:
         }
         self.button_callbacks = {}
         self.analog_callbacks = {}
+        self.last_button_states = {}  # Track previous button states
         pygame.init()
         pygame.joystick.init()
 
@@ -44,6 +45,9 @@ class NintendoProController:
 
         self.joystick = pygame.joystick.Joystick(0)
         self.joystick.init()
+        # Initialize last_button_states for all buttons
+        for idx in range(self.joystick.get_numbuttons()):
+            self.last_button_states[idx] = 0
 
     def kill(self):
         pygame.quit()
@@ -74,18 +78,22 @@ class NintendoProController:
     def run_callbacks(self):
         """
         Poll the joystick and run callbacks for pressed buttons and analog sticks.
+        Only call button callbacks on rising edge (transition from not pressed to pressed).
         """
         pygame.event.pump()
         buttons = [self.joystick.get_button(i) for i in range(self.joystick.get_numbuttons())]
         axes = [self.joystick.get_axis(i) for i in range(self.joystick.get_numaxes())]
         
-        # Run button callbacks
+        # Run button callbacks on rising edge
         for button_index in range(len(buttons)):
-            if buttons[button_index] and button_index in self.button_callbacks:
+            prev = self.last_button_states.get(button_index, 0)
+            curr = buttons[button_index]
+            if curr and not prev and button_index in self.button_callbacks:
                 try:
-                    self.button_callbacks[button_index](buttons[button_index])
+                    self.button_callbacks[button_index](curr)
                 except Exception as e:
                     print(f"Button callback error: {e}")
+            self.last_button_states[button_index] = curr
 
         # Run analog callbacks (always run, even if button callback raised)
         for stick_index in range(len(axes)):

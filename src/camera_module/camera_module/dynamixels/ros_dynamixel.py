@@ -33,9 +33,7 @@ class DynamixelMotorNode(Node):
             self.get_logger().error(f"Failed to initialize Dynamixel motor: {e}")
             raise Exception("Motor initialization failed")
 
-        # Set up the moving average filter
-        self.position_history = deque(maxlen=SMOOTHING_WINDOW_SIZE)
-
+        self.current_position = TRUE_CENTER
         # Create a subscriber to the 'motor_position' topic
         self.subscription = self.create_subscription(
             Float32,
@@ -51,25 +49,24 @@ class DynamixelMotorNode(Node):
         It processes incoming Float32 messages to control the motor.
         """
         # Add the new data to the smoothing window
-        self.position_history.append(-msg.data)
 
         # Calculate the average of the values in the window for smoothing
-        smoothed_data = sum(self.position_history) / len(self.position_history)
 
         # Clamp the smoothed data to the valid range of the topic
-        clamped_data = max(-1.0, min(1.0, smoothed_data))
 
         # Map the clamped data from the [-1.0, 1.0] range to the motor's position range
         # Formula: new_value = ((old_value - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min
-        mapped_position = ((clamped_data - (-1.0)) / (1.0 - (-1.0))) * (self.max_pos - self.min_pos) + self.min_pos
         
         # Write the new goal position to the motor
         # Dynamixel positions are typically integers, so we convert the float to int
-        mapped_position = mapped_position - self.pos_delta
+        mapped_position = int(self.current_position + (msg.data * 100))
         if mapped_position < self.min_pos:
             mapped_position = self.min_pos
+        elif mapped_position > self.max_pos:
+            mapped_position = self.max_pos
         self.motor.write_goal_position(int(mapped_position))
-        self.get_logger().info(f"Received: {msg.data:.2f}, Smoothed: {clamped_data:.2f}, Set position to: {int(mapped_position)}")
+        self.current_position = mapped_position
+        # self.get_logger().info(f"Received: {msg.data:.2f}, Smoothed: {clamped_data:.2f}, Set position to: {int(mapped_position)}")
 
     def destroy_node(self):
         """

@@ -24,8 +24,8 @@ class BTDrive(Node):
         # The rest of __init__ is unchanged as it only runs if the controller is ready.
         self.controller.add_analog_callback("LS_x", self.lsx_callback)
         self.controller.add_analog_callback("LS_y", self.lsy_callback)
-        self.controller.add_button_callback("D_up", self.increment_mode)
-        self.controller.add_button_callback("D_down", self.decrement_mode)
+        # self.controller.add_button_callback("D_up", self.increment_mode)
+        # self.controller.add_button_callback("D_down", self.decrement_mode)
         self.controller.add_button_callback("A", self.turbo_mode)
         self.get_logger().info("Controller setup complete.")
 

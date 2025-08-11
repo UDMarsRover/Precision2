@@ -24,6 +24,8 @@ class BTDrive(Node):
         # The rest of __init__ is unchanged as it only runs if the controller is ready.
         self.controller.add_analog_callback("LS_x", self.lsx_callback)
         self.controller.add_analog_callback("LS_y", self.lsy_callback)
+        self.controller.add_button_callback("plus", self.increment_mode)
+        self.controller.add_button_callback("minus", self.decrement_mode)
         self.get_logger().info("Controller setup complete.")
 
         # ROS 2 subscription
@@ -40,6 +42,9 @@ class BTDrive(Node):
         self.ls_received = False
         self.lrc_active = False
 
+        self.mode = 0
+        self.max_vels = [200, 400, 600, 800, 1000]
+
     def setup_controller(self):
         """
         Attempts to initialize the Nintendo Pro Controller in a blocking, indefinite loop.
@@ -53,6 +58,21 @@ class BTDrive(Node):
             except Exception as e:
                 self.get_logger().info(f"Failed to initialize controller: {e}. Retrying in 3 seconds...")
                 time.sleep(3)
+    def increment_mode(self):
+        """
+        Increment the mode and update the maximum velocities accordingly.
+        """
+        self.mode = (self.mode + 1) % len(self.max_vels)
+        self.max_velocity = self.max_vels[self.mode]
+        self.get_logger().info(f"Mode changed to {self.mode}, max velocity set to {self.max_velocity}")
+
+    def decrement_mode(self):
+        """
+        Decrement the mode and update the maximum velocities accordingly.
+        """
+        self.mode = (self.mode - 1) % len(self.max_vels)
+        self.max_velocity = self.max_vels[self.mode]
+        self.get_logger().info(f"Mode changed to {self.mode}, max velocity set to {self.max_velocity}")
 
     def control_callback(self, msg):
         self.get_logger().info("LRC active, shutting down bluetooth controller")

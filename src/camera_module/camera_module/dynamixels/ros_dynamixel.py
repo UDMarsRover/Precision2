@@ -63,7 +63,8 @@ class DynamixelMotorNode(Node):
 
         # Map the clamped data from the [-1.0, 1.0] range to the motor's position range
         # Formula: new_value = ((old_value - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min
-        
+        if abs(mapped_position) < 0.05:
+            return
         # Write the new goal position to the motor
         # Dynamixel positions are typically integers, so we convert the float to int
         mapped_position = int(self.current_position - (msg.data * 200))

@@ -64,7 +64,8 @@ class I2CServoNode(Node):
         # This script expects a normalized value and converts it to a 0-180 degree angle.
         # You may need to adjust this logic based on your specific ROS message data.
         normalized_position = msg.data
-        
+        if abs(normalized_position) < 0.05:
+            return
         # Add the new data to the smoothing window
 
         # Calculate the average of the values in the window

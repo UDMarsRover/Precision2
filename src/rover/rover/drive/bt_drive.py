@@ -85,9 +85,9 @@ class BTDrive(Node):
     
     def turbo_mode(self, value):
         if value < 1:
-            return
+            self.max_velocity = 300  # Reset to normal speed
         else:
-            print("Activating turbo mode")
+            self.max_velocity = 600  # Activate turbo mode
 
 def main(args=None):
     rclpy.init(args=args)

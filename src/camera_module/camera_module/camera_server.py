@@ -181,17 +181,67 @@ def stream_feed(camera_id):
 
 @app.route('/')
 def root():
-    res_list = ', '.join(OUTPUT_RESOLUTIONS.keys())
-    zoom_list = ', '.join(map(str, ZOOM_LEVELS))
+    res_options = ''.join([f'<option value="{r}">{r}</option>' for r in OUTPUT_RESOLUTIONS.keys()])
+    zoom_min = min(ZOOM_LEVELS)
+    zoom_max = max(ZOOM_LEVELS)
+    zoom_step = 0.1
     return f"""
     <html>
-    <head><title>Pi Camera Stream with ArUco</title></head>
+    <head>
+        <title>Dual Camera Stream</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; background: #222; color: #eee; }}
+            .controls {{ margin-bottom: 20px; }}
+            .video-container {{ display: flex; justify-content: center; align-items: center; }}
+            #stream {{ border: 2px solid #444; border-radius: 8px; background: #111; }}
+            label, select, input {{ margin-right: 10px; }}
+            .switch-btn {{ margin-left: 10px; padding: 5px 10px; }}
+        </style>
+    </head>
     <body>
-        <h1>Pi Camera Stream API with ArUco Detection</h1>
-        <p>Available resolutions: {res_list}</p>
-        <p>Available zoom levels: {zoom_list}</p>
-        <p>Normal stream: <a href="/stream/0?resolution=720p&zoom=1.0">/stream/0?resolution=720p&zoom=1.0</a></p>
-        <p>With ArUco detection: <a href="/stream/0?resolution=720p&zoom=1.0&aruco=true">/stream/0?resolution=720p&zoom=1.0&aruco=true</a></p>
+        <h1>Dual Camera Stream</h1>
+        <div class="controls">
+            <label for="camera">Camera:</label>
+            <select id="camera">
+                <option value="0">Camera 0</option>
+                <option value="1">Camera 1</option>
+            </select>
+            <label for="resolution">Resolution:</label>
+            <select id="resolution">{res_options}</select>
+            <label for="zoom">Zoom:</label>
+            <input type="range" id="zoom" min="{zoom_min}" max="{zoom_max}" step="{zoom_step}" value="1.0" />
+            <span id="zoom-value">1.0</span>
+            <button class="switch-btn" onclick="switchCamera()">Switch Camera</button>
+        </div>
+        <div class="video-container">
+            <img id="stream" src="/stream/0?resolution=720p&zoom=1.0" width="640" height="480" />
+        </div>
+        <script>
+            var cameraSel = document.getElementById('camera');
+            var resSel = document.getElementById('resolution');
+            var zoomSlider = document.getElementById('zoom');
+            var zoomVal = document.getElementById('zoom-value');
+            var streamImg = document.getElementById('stream');
+            var currentCamera = 0;
+
+            function updateStream() {{
+                var cam = cameraSel.value;
+                var res = resSel.value;
+                var zoom = parseFloat(zoomSlider.value).toFixed(1);
+                zoomVal.textContent = zoom;
+                streamImg.src = '/stream/' + cam + '?resolution=' + res + '&zoom=' + zoom;
+                currentCamera = cam;
+            }}
+
+            cameraSel.addEventListener('change', updateStream);
+            resSel.addEventListener('change', updateStream);
+            zoomSlider.addEventListener('input', updateStream);
+
+            function switchCamera() {{
+                cameraSel.value = currentCamera == 0 ? '1' : '0';
+                updateStream();
+            }}
+        </script>
     </body>
     </html>
     """

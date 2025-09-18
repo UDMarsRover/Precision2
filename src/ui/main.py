@@ -7,6 +7,8 @@ import Map
 import Windows
 import Terminal
 
+#Creator: Jade
+
 class Button(QPushButton):
 
     def __init__(self, name, color, connection): #Add size?

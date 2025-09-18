@@ -1,6 +1,6 @@
 import sys
 import cv2
-from PyQt6.QtWidgets import *       #Change to specifics when finalized
+from PyQt6.  import *       #Change to specifics when finalized
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt, QTimer
 import Map

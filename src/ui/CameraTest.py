@@ -7,7 +7,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from Capture import WebRTCVideoCapture as webRTC
 # from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit
 
-
+# hello
 # Now unneccessary template camera class
 class Camera(QWidget):
     def __init__(self):

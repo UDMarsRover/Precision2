@@ -8,6 +8,7 @@ import Windows
 import Terminal
 
 #Creator: Jade
+# Date September 2025
 
 class Button(QPushButton):
 

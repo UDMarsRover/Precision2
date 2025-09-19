@@ -10,7 +10,7 @@ import Terminal
 #Creator: Jade
 # Date September 2025
 #hi
-
+#1
 class Button(QPushButton):
 
     def __init__(self, name, color, connection): #Add size?

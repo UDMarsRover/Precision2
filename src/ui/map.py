@@ -3,7 +3,7 @@ from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QPixmap, QImage
 from PIL import Image, ImageDraw
 import json
-
+#2
 '''
 PyQt6 class (extends QWidget) for the UI minimap
 '''

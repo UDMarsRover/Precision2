@@ -1,14 +1,43 @@
 import sys
 import cv2
-from PyQt6.  import *       #Change to specifics when finalized
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QPushButton, QWidget, QLabel, QSlider,
+    QHBoxLayout, QGridLayout, QVBoxLayout, QTextEdit
+) #Change to specifics when finalized
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt, QTimer
-import Map
-import Windows
+import map
+import windows
 import Terminal
+ 
+ #Applies the infrared effect to the camera 
+def infrared_effect(frame):
+        cimg = frame
+        plt_image = cv2.cvtColor(cimg, cv2.COLOR_BGR2RGB)
+        
+        inv_cimg = ~cimg.copy() 
+        inv_cimg[:, :, 1] = 0
+        inv_cimg[:, :, 2] = 0
+        
+        plt_image = cv2.cvtColor(inv_cimg, cv2.COLOR_BGR2RGB)
+        
+        inv_hsv = cv2.cvtColor(inv_cimg, cv2.COLOR_BGR2HSV)
+        img_hsv = cv2.cvtColor(cimg, cv2.COLOR_BGR2HSV)
 
-#Creator: Jade
-# Date September 2025
+        dst = cv2.addWeighted(inv_hsv[:, :, 0] , .9, img_hsv[:, :, 0] , .9, 0)
+        img_hsv[:, :, 0] = dst
+        hue_cimg = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR)
+
+        plt_image = hue_cimg
+        
+        plt_image = cv2.cvtColor(hue_cimg, cv2.COLOR_BGR2RGB)
+        frame = plt_image
+
+        return frame
+def apply_infrared(frame):
+        processed_frame = infrared_effect(frame)
+        return processed_frame
+        
 
 class Button(QPushButton):
 
@@ -128,7 +157,26 @@ class Button(QPushButton):
             infraRedCam.setStyleSheet(self.defaultSheet)
             cameraMode = "High Res"
 
-    def infrared_camera(self):
+    # def infrared_camera(self):
+    #     global cameraMode
+    #     global highResCam
+    #     global infraRedCam
+    #     if cameraMode == "High Res":
+    #         infraRedCam.setStyleSheet("QPushButton {"
+    #             "background-color: blue;"
+    #             "color: black;"               
+    #             "}"
+    #             "QPushButton:hover {"
+    #             "background-color: silver;"
+    #             "color: black"
+    #             "}")
+    #         highResCam.setStyleSheet(self.defaultSheet)
+    #         cameraMode = "Infrared"
+    
+
+    
+    
+    def infrared_camera(self,camera):
         global cameraMode
         global highResCam
         global infraRedCam
@@ -143,6 +191,7 @@ class Button(QPushButton):
                 "}")
             highResCam.setStyleSheet(self.defaultSheet)
             cameraMode = "Infrared"
+        
    
 class exitWindow(QWidget):
     def __init__(self):
@@ -161,9 +210,10 @@ class exitWindow(QWidget):
         self.show()
 
 class Camera(QWidget):
-    def __init__(self):
+    def __init__(self, path):
         super().__init__()
         self.image_label = QLabel()
+        self.path = path
         
         self.sliderH = QSlider(Qt.Orientation.Horizontal)
         self.sliderV = QSlider(Qt.Orientation.Vertical)
@@ -203,19 +253,25 @@ class Camera(QWidget):
         self.layout.addWidget(self.image_label, 1,0, 3,3)
         self.layout.addWidget(self.sliderV, 3,3)
         self.setLayout(self.layout)
-        
-        self.cap = cv2.VideoCapture("192.168.0.114:8889/cam")
+        # "192.168.0.114:8889/cam"
+        self.cap = cv2.VideoCapture(self.path)
 
         #Creates a timer that will update the webcam feed every 30 milliseconds
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update)
         self.timer.start(30)
-        
+    
+    
     def update(self):
         ret, frame = self.cap.read()
         if ret:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = QImage(frame, frame.shape[1], frame.shape[0], QImage.Format.Format_RGB888)
+
+            if cameraMode == "Infrared":
+                IR_frame = apply_infrared(frame)
+                image = QImage(IR_frame, IR_frame.shape[1], IR_frame.shape[0], QImage.Format.Format_RGB888)
+                # calls for High Resolution Mode 
 
             #Scales the image so it fits better
             self.new_width = 600
@@ -267,10 +323,11 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     #Creating main widgets
-    window = Windows.mainWindow()
-    camera = Camera()
+    window = windows.mainWindow()
+    camera = Camera(path=0)
     terminal = Terminal.Terminal()
-    mapObj = Map.Map()
+    # mapObj = map.Map()
+    mapObj= Camera(path=1)
     output_window = Output_Window()
 
     #Buttons!
@@ -317,4 +374,4 @@ if __name__ == "__main__":
     window.layout.addWidget(mapObj, 2,0)
     window.layout.addWidget(output_window, 1,2)
 
-    app.exec()
+    sys.exit(app.exec())

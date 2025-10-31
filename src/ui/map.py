@@ -3,7 +3,7 @@ from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QPixmap, QImage
 from PIL import Image, ImageDraw
 import json
-
+#2
 '''
 PyQt6 class (extends QWidget) for the UI minimap
 '''
@@ -46,9 +46,9 @@ class Map(QWidget):
 
     def set_image(self):
         #This loads the image (change the path to where it is in the run computer)
-        path = r"C:\Users\weave\Documents\Programming\PythonScripts\KLTestImage.jpg"
+        path = r"src/ui/KLTestImage.jpg"
         #This is the path to the map with the pins overlaid
-        pin_path = r"C:\Users\weave\Documents\Programming\PythonScripts\KLTestImage_withPins.jpg"
+        pin_path = r"src/ui/KLTestImage_withPins.jpg"
 
         image = Image.open(path)
         draw = ImageDraw.Draw(image)

@@ -2,19 +2,20 @@ import cv2
 import sys
 from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QImage, QPixmap
-from PyQt6.QtWidgets import QApplication, QWidget, QBoxLayout, QMainWindow
+from PyQt6.QtWidgets import QApplication, QWidget, QBoxLayout, QMainWindow, QLabel
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from Capture import WebRTCVideoCapture as webRTC
 # from PyQt6.QtWidgets import QWidget, QVBoxLayout, QTextEdit, QLineEdit
 
 # hello
+#test
 # Now unneccessary template camera class
 class Camera(QWidget):
     def __init__(self):
         super().__init__()
 
 
-        self.cap = cv2.VideoCapture("192.168.0.114:8889/cam")
+        #self.cap = cv2.VideoCapture("192.168.0.114:8889/cam")
         self.cap = cv2.VideoCapture(0)
 
         self.image_label = QLabel()
@@ -25,7 +26,7 @@ class Camera(QWidget):
         # self.timer.timeout.connect(self.update)
         # self.timer.start(30)
 
-
+    """
     def update(self):
         ret, frame = self.cap.read()
         if ret:
@@ -45,6 +46,8 @@ class Camera(QWidget):
             self.image_label.setPixmap(pixmap)
             
             self.show()
+            """
+            
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

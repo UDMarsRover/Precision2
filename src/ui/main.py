@@ -6,15 +6,15 @@ from PyQt6.QtWidgets import (
 ) #Change to specifics when finalized
 from PyQt6.QtGui import QPixmap, QImage
 from PyQt6.QtCore import Qt, QTimer
-import map
-import windows
-import Terminal
- 
+import map 
+import windows 
+import Terminal 
+       
  #Applies the infrared effect to the camera 
 def infrared_effect(frame):
         cimg = frame
         plt_image = cv2.cvtColor(cimg, cv2.COLOR_BGR2RGB)
-        
+            
         inv_cimg = ~cimg.copy() 
         inv_cimg[:, :, 1] = 0
         inv_cimg[:, :, 2] = 0
@@ -84,7 +84,7 @@ class Button(QPushButton):
     def confirm_exit(self, fakeArgument1):  
         app.closeAllWindows()
         
-    def cancel_exit(self, fakeArgument1):
+    def cancel_exit(self, fakeArgument1): 
         closer.close()
 
     def lightsOut(self, fakeArgument1):
@@ -242,7 +242,7 @@ class Camera(QWidget):
         self.button_container = QWidget()
         self.button_container.layout = QHBoxLayout()
         self.button_container.layout.addWidget(infraRedCam)
-        self.button_container.layout.addWidget(highResCam)
+        self.button_container.layout.addWidget(highResCam) 
         self.button_container.layout.addWidget(self.screenshot)
         self.button_container.setLayout(self.button_container.layout)
 
@@ -324,7 +324,7 @@ if __name__ == "__main__":
 
     #Creating main widgets
     window = windows.mainWindow()
-    camera = Camera(path=0)
+    camera = Camera(path=0) 
     terminal = Terminal.Terminal()
     # mapObj = map.Map()
     mapObj= Camera(path=1)
@@ -374,4 +374,5 @@ if __name__ == "__main__":
     window.layout.addWidget(mapObj, 2,0)
     window.layout.addWidget(output_window, 1,2)
 
-    sys.exit(app.exec())
+    sys.exit(app.exec()) 
+    
